@@ -9,6 +9,14 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.docstore.document import Document
 
+def sorted_os_walk(path):
+    for dirpath, dirnames, filenames in os.walk(path):
+        # Sort directory names and file names
+        dirnames.sort()  # Sort in-place
+        filenames.sort()  # Sort in-place
+        yield dirpath, dirnames, filenames
+
+
 def load_markdown_files(directory: str, max_files: int = None) -> List[Document]:
     """Load all markdown files from a directory and its subdirectories."""
     if directory[-1] != '/':
@@ -20,7 +28,7 @@ def load_markdown_files(directory: str, max_files: int = None) -> List[Document]
     progressbar = tqdm(total=total)
     documents = []
     count=0
-    for root, _, files in os.walk(directory):
+    for root, _, files in sorted_os_walk(directory):
         for file in files:
             if file.endswith('.md'):
                 with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
@@ -57,12 +65,31 @@ def split_documents(documents: List[Document]) -> List[Document]:
     for doc in tqdm(documents):
         # First split by headers
         header_splits = markdown_splitter.split_text(doc.page_content)
+
+        authors = None
+        published_in = None
+        doi = None
+        abstract = None
         
         for header_split in header_splits:
             # Get the header information
-            header = (header_split.metadata.get("Header 1", "") or 
-                     header_split.metadata.get("Header 2", "") or 
-                     header_split.metadata.get("Header 3", ""))
+            title, header1, section_title = (header_split.metadata.get("Header 1", ""),
+                                       header_split.metadata.get("Header 2", ""),
+                                       header_split.metadata.get("Header 3", ""))
+            #print(title, header1, section_title)
+            
+            if header1 == "Authors":
+                authors = header_split.page_content
+                continue
+            elif header1 == "Published in":
+                published_in = header_split.page_content
+                continue
+            elif header1 == "DOI":
+                doi = header_split.page_content
+                continue
+            elif header1 == "Abstract":
+                abstract = header_split.page_content
+                # here we do not do continue, we want to actually index the abstract!
             
             # Split content into lines
             lines = header_split.page_content.split('\n')
@@ -101,12 +128,18 @@ def split_documents(documents: List[Document]) -> List[Document]:
                 
                 # Create new chunk if size limit reached
                 if current_length >= 800:  # Slightly lower than chunk_size to account for overlap
+                    current_chunk_text = '\n'.join(current_chunk)
                     split_docs.append(
                         Document(
-                            page_content='\n'.join(current_chunk),
+                            page_content=f"Title: {title}\nAuthors: {authors}\nPublished in: {published_in}\nSection Title: {section_title}\n{current_chunk_text}",
                             metadata={
                                 "source": doc.metadata["source"],
-                                "header": header
+                                "title": title,
+                                "section_title": section_title,
+                                "authors": authors,
+                                "published_in": published_in,
+                                "doi": doi
+                                # "abstract": abstract,  # we leave out the abstract to save some space. is this a good idea?
                             }
                         )
                     )
@@ -117,12 +150,18 @@ def split_documents(documents: List[Document]) -> List[Document]:
             
             # Add remaining content as a chunk
             if current_chunk:
+                current_chunk_text = '\n'.join(current_chunk)
                 split_docs.append(
                     Document(
-                        page_content='\n'.join(current_chunk),
+                        page_content=f"Title: {title}\nAuthors: {authors}\nPublished in: {published_in}\nSection Title: {section_title}\n{current_chunk_text}",
                         metadata={
                             "source": doc.metadata["source"],
-                            "header": header
+                            "title": title,
+                            "section_title": section_title,
+                            "authors": authors,
+                            "published_in": published_in,
+                            "doi": doi
+                            # "abstract": abstract,  # we leave out the abstract to save some space. is this a good idea?
                         }
                     )
                 )

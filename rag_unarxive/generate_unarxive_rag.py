@@ -11,10 +11,10 @@ from langchain.docstore.document import Document
 
 print("Initializing vector store...")
 vector_store = initialize_rag(
-    markdown_dir="./dataset/md/",
-    faiss_index_file = "/data/horse/ws/s9650707-llm_secrets/datasets/unarxive/faiss_index",
+    markdown_dir="/data/horse/ws/s9650707-llm_secrets/datasets/unarxive/md3/",
+    faiss_index_file = "/data/horse/ws/s9650707-llm_secrets/datasets/unarxive/faiss_index3",
     load_index_from_file=False,
     store_index_to_file=True,
     max_files=None,
-    docs_per_batch=32768
+    docs_per_batch=262144
 )
