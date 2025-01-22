@@ -5,6 +5,7 @@
 Install all required libraries into your virtual environment:
 - `langchain-community`
 - `transformers`
+- `sentence-transformers`
 - `fastapi[standard]`    # the `[standard]` is necessary
 - `peft`
 
