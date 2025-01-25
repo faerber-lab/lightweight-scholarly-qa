@@ -24,22 +24,6 @@ Here are the reference sections:
 
 
 
-def format_context(retrieved_docs: List[Document]) -> str:
-    """Format retrieved documents into a context string."""
-    context = "Reference information:\n"
-    for doc in retrieved_docs:
-        content = doc.page_content
-        source = doc.metadata.get("source", "Unknown")
-        header = doc.metadata.get("header", "")
-        
-        context += f"\n--- From {source}"
-        if header:
-            context += f" ({header})"
-        context += f" ---\n{content}\n"
-    
-    context += "\nBased on the above information, please answer: "
-    return context
-
 def retrieve_formatted_documents(prompt: str, vector_store) -> str:        
     # Retrieve relevant documents
     retrieved_docs = vector_store.similarity_search(prompt, k=10)
