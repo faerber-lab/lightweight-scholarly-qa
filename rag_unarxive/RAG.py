@@ -3,10 +3,12 @@
 
 
 
+import sys
 print("Loading rag_requests...")
 from rag_request import rag_request
 print("Loading llama_requests...")
 from llama_request import llama_request
+from classify_prompt import classify_prompt
 
 print("Loading others...")
 from typing import List
@@ -31,19 +33,19 @@ def format_context(retrieved_docs: List[Document]) -> str:
         content = doc.page_content
         source = doc.metadata.get("source", "Unknown")
         header = doc.metadata.get("header", "")
-        
+
         context += f"\n--- From {source}"
         if header:
             context += f" ({header})"
         context += f" ---\n{content}\n"
-    
+
     context += "\nBased on the above information, please answer: "
     return context
 
-def retrieve_formatted_documents(prompt: str, vector_store) -> str:        
+def retrieve_formatted_documents(prompt: str, vector_store) -> str:
     # Retrieve relevant documents
     retrieved_docs = vector_store.similarity_search(prompt, k=10)
-    
+
     # Format context
     context = format_context(retrieved_docs)
     return context
@@ -55,12 +57,12 @@ def format_context(retrieved_docs: List[Document]) -> str:
         content = doc["page_content"]
         source = doc["metadata"].get("source", "Unknown")
         header = doc["metadata"].get("header", "")
-        
+
         context += f"\n--- From {source}"
         if header:
             context += f" ({header})"
         context += f" ---\n{content}\n"
-    
+
     context += "\nBased on the above information, please answer: "
     return context
 
@@ -68,28 +70,27 @@ def generate_response(prompt: str):
     """Generate a streaming response using RAG and the fine-tuned model."""
     if not prompt:
         return "Hi I am an assistant for Candulor GmbH. I can help you with questions about their products. What do you need help with?"
-    
+
     # Retrieve relevant documents - changed from k=3 to k=5
     retrieved_docs = rag_request(prompt, k=10, port=8001)
-    
+
     # Format context
     context = format_context(retrieved_docs)
-    
+
     # Combine context and prompt
     full_prompt = context + prompt
-        
+
     messages = [
         {
-            "role": "system", 
+            "role": "system",
             "content": SYSTEM_PROMPT_INITIAL_GENERATION
         },
         {"role": "user", "content": full_prompt}
     ]
-    
-    chat = llama_request(messages, port=8000)
-    
-    return chat
 
+    chat = llama_request(messages, port=8000)
+
+    return chat
 
 
 def rag():
@@ -103,6 +104,7 @@ def rag():
         if not prompt:
             print("Usage: python RAG.py <prompt>")
             sys.exit(1)
+        print ("The task of the prompt is {}".format(classify_prompt(prompt)))
         # Generate and stream response
         chat = generate_response(prompt)
         reply = chat['generated_text'][-1]['content']
