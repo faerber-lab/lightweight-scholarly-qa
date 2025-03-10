@@ -1,7 +1,7 @@
 import requests
 import json
 
-def rag_request(query: str, k: int, server_addr: str = "http://127.0.0.1", port: str = "8001", endpoint: str = "rag_retrieve"):
+def rag_request(query: str, k: int, server_addr: str = "http://127.0.0.1", port: str = "8003", endpoint: str = "rag_retrieve"):
     # Define the server URL
     server_url = f"{server_addr}:{port}/{endpoint}/"
     

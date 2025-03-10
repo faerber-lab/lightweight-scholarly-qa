@@ -131,7 +131,7 @@ def split_documents(documents: List[Document]) -> List[Document]:
                     current_chunk_text = '\n'.join(current_chunk)
                     split_docs.append(
                         Document(
-                            page_content=f"Title: {title}\nAuthors: {authors}\nPublished in: {published_in}\nSection Title: {section_title}\n{current_chunk_text}",
+                            page_content=f"{current_chunk_text}",
                             metadata={
                                 "source": doc.metadata["source"],
                                 "title": title,

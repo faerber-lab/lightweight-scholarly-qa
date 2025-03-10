@@ -1,7 +1,7 @@
 import requests
 import json
 
-def llama_request(chat, server_addr: str = "http://127.0.0.1", port: str = "8000", endpoint: str = "llama_generate"):
+def llama_request(chat, server_addr: str = "http://127.0.0.1", port: str = "8002", endpoint: str = "llama_generate"):
     # Define the server URL
     server_url = f"{server_addr}:{port}/{endpoint}/"
     
