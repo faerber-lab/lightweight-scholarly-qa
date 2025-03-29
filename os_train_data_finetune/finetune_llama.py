@@ -1,11 +1,18 @@
+print("loading transformers")
 from transformers import AutoModelForCausalLM, AutoTokenizer
+print("loading torch")
 import torch
+
+print("loading others")
 import os
 import shutil
 
 from peft import LoraConfig, TaskType, get_peft_model
 from trl import SFTConfig, SFTTrainer, DataCollatorForCompletionOnlyLM
 from datasets import load_dataset
+
+print("done loading libs")
+print("loading model")
 
 # from unsloth import FastLanguageModel
 
@@ -75,8 +82,15 @@ peft_model.print_trainable_parameters()
 
 model = peft_model
 
+print("loading dataset")
 
-train_dataset = load_dataset(
+dataset = load_dataset(
+    "OpenScholar/OS_Train_Data",
+    num_proc=4,
+    cache_dir="/tmp/s9650707/datasets",
+)
+
+"""train_dataset = load_dataset(
     "OpenScholar/OS_Train_Data",
     num_proc=4,
     split="train[:98%]",
@@ -88,16 +102,52 @@ eval_dataset = load_dataset(
     num_proc=4,
     split="train[-2%:]",
     cache_dir="/tmp/s9650707/datasets",
-)
+)"""
+
+split_dataset = dataset["train"].train_test_split(test_size=0.02)
+
+train_dataset = split_dataset["train"]
+eval_dataset = split_dataset["test"]
+
 
 print("size of train dataset:", len(train_dataset))
 print("size of eval dataset:", len(eval_dataset))
+
+all_datasets = {}
+examples = {}
+for i,data in enumerate(dataset['train']):
+    ds = data['dataset']
+    all_datasets[ds] = all_datasets[ds]+1 if ds in all_datasets else 1
+    if ds not in examples:
+        examples[ds] = (data['id'], data['messages'][0]['content'], data['messages'][1]['content'])
+        #print("train", i, data['dataset'], data['id'], data['messages'][0]['content'][:250])
+
+
+train_datasets = {}
+for i,data in enumerate(train_dataset):
+    ds = data['dataset']
+    train_datasets[ds] = train_datasets[ds]+1 if ds in train_datasets else 1
+    
+eval_datasets = {}
+for i,data in enumerate(eval_dataset):
+    ds = data['dataset']
+    eval_datasets[ds] = eval_datasets[ds]+1 if ds in eval_datasets else 1
+
+
+print(f"{train_datasets=}\n{eval_datasets=}\n{all_datasets=}")
+
+with open("examples.txt", "w") as f:
+    for name, example in sorted(examples.items()):
+        f.write(f"### {name} (id {example[0]})\n##### Request\n{example[1]}\n##### Reply\n{example[2]}\n\n")
+
+
+exit()
 
 model.train()
 
 training_args = SFTConfig(
     max_seq_length=8192,
-    output_dir="./model_checkpoints_100percent_lora32/",
+    output_dir="./model_checkpoints_100percent_lora32_shuffled_split/",
     per_device_train_batch_size=1,
     per_device_eval_batch_size=2,
     learning_rate=0.000005,

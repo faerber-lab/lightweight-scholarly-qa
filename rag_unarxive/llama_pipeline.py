@@ -19,8 +19,9 @@ def get_llama_pipeline():
     model_in_cache_name = f"models--{model_name.split('/')[0]}--{model_name.split('/')[1]}"
 
     model_snapshot = "0e9e39f249a16976918f6564b8830bc894c89659" if model_name == "meta-llama/Llama-3.1-8B-Instruct" else "0cb88a4f764b7a12671c53f0838cd831a0843b95"
-     
-    cache_path = os.path.join(os.path.expanduser('~/.cache/huggingface/hub/'), model_in_cache_name, f"snapshots/{model_snapshot}")
+
+    hf_cache_path = os.environ.get("HF_HUB_CACHE", "~/.cache/huggingface/hub/")
+    cache_path = os.path.join(os.path.expanduser(hf_cache_path), model_in_cache_name, f"snapshots/{model_snapshot}")
     tmp_base_path = "/tmp/s9650707/models/"
     tmp_path = os.path.join(tmp_base_path, model_in_cache_name)
     if os.path.exists(cache_path):
@@ -34,7 +35,7 @@ def get_llama_pipeline():
     else:
         print("Model does not exist in cache -> download")
         model_path = model_name
-    model_path = "/data/horse/ws/s9650707-llm_workspace/scholaryllm_prot/os_train_data_finetune/model_checkpoints_100percent_lora32/checkpoint-7970/"
+    model_path = "/data/horse/ws/s9650707-llm_workspace/scholaryllm_prot/os_train_data_finetune/model_checkpoints_100percent_lora32_shuffled_split/checkpoint-7970/"
     base_model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16) #"Qwen/Qwen2-0.5B-Instruct")
     tokenizer = AutoTokenizer.from_pretrained(model_path) #"Qwen/Qwen2-0.5B-Instruct")  # Changed to load from fine-tuned path
     
