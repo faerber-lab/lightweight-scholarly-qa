@@ -46,6 +46,17 @@ class Reference:
         reftext = reftext + "\n"
         return reftext
 
+    def cleaned_content(self) -> str:
+        content_cleaned = self.content
+        content_cleaned.replace("{{cite:}}", "")
+        content_cleaned.replace(", ,", "")
+        content_cleaned.replace(" , ", ", ")
+        content_cleaned.replace("..", "")
+        content_cleaned.replace("\n", " ")
+        content_cleaned.replace("  ", " ")
+        return f"{content_cleaned}"
+
+
 class References(list):
 
     def __init__(self, *args: Reference|list[Reference]|tuple[Reference]) -> None:

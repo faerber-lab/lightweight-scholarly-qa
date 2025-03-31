@@ -1,4 +1,5 @@
 import requests
+import time
 
 from typing import Dict,List
 
@@ -37,9 +38,19 @@ def format_venue(data) -> str:
 
 
 def fetch_paper_from_semantic_scholar(title: str):
-    rsp = requests.get((f'https://api.semanticscholar.org/graph/v1/paper/search/match?query={title}&fields=title,authors,venue,year,url,journal'))
-    if rsp.status_code == 404:
-        return None
+    rate = 1.0
+    while True:
+        time.sleep(rate)
+        rsp = requests.get((f'https://api.semanticscholar.org/graph/v1/paper/search/match?query={title}&fields=title,authors,venue,year,url,journal'))
+        if rsp.status_code == 404:
+            return None
+        elif rsp.status_code == 429:
+            print("SemanticScholar: Got status code 429 (rate limit)")
+            rate = rate * 2
+        else:
+            break
+            
+        
     rsp.raise_for_status()
     results = rsp.json()
 
@@ -47,7 +58,7 @@ def fetch_paper_from_semantic_scholar(title: str):
         return None
     
     data = results['data'][0]
-    print(data)
+    #print(data)
     
     title = data['title']
     authors = format_authors(data['authors'])

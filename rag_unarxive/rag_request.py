@@ -9,7 +9,7 @@ def rag_request(query: str, k: int, server_addr: str = "http://127.0.0.1", port:
     query_json = {"query": query, "k": k}
     
     # Make a POST request to the server
-    print("sending RAG request...")
+    #print("sending RAG request...")
     response = requests.post(server_url, json=query_json)
     
     # Check response

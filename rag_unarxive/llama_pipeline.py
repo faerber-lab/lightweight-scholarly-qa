@@ -35,7 +35,13 @@ def get_llama_pipeline():
     else:
         print("Model does not exist in cache -> download")
         model_path = model_name
-    model_path = "/data/horse/ws/s9650707-llm_workspace/scholaryllm_prot/os_train_data_finetune/model_checkpoints_100percent_lora32_shuffled_split/checkpoint-7970/"
+    
+    # 8k context Finetuned model
+    #model_path = "/data/horse/ws/s9650707-llm_workspace/scholaryllm_prot/os_train_data_finetune/model_checkpoints_100percent_lora32_shuffled_split/checkpoint-7970/"
+    
+    # 16k context Finetuned model
+    model_path = "/data/horse/ws/s9650707-llm_workspace/scholaryllm_prot/os_train_data_finetune/model_checkpoints_100percent_lora32_shuffled_split_16k_context/checkpoint-3985/"
+    print(f"Using model {model_path}")
     base_model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16) #"Qwen/Qwen2-0.5B-Instruct")
     tokenizer = AutoTokenizer.from_pretrained(model_path) #"Qwen/Qwen2-0.5B-Instruct")  # Changed to load from fine-tuned path
     

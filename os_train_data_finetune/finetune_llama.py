@@ -141,13 +141,13 @@ with open("examples.txt", "w") as f:
         f.write(f"### {name} (id {example[0]})\n##### Request\n{example[1]}\n##### Reply\n{example[2]}\n\n")
 
 
-exit()
+
 
 model.train()
 
 training_args = SFTConfig(
     max_seq_length=8192,
-    output_dir="./model_checkpoints_100percent_lora32_shuffled_split/",
+    output_dir="./model_checkpoints_100percent_lora32_shuffled_split_8k_context_2_epoch/",
     per_device_train_batch_size=1,
     per_device_eval_batch_size=2,
     learning_rate=0.000005,
@@ -159,7 +159,7 @@ training_args = SFTConfig(
     weight_decay=0.01,
     warmup_steps=200,
     max_grad_norm=0.01,
-    num_train_epochs=1,
+    num_train_epochs=2,
     load_best_model_at_end=True,
     eval_strategy="steps",
 )

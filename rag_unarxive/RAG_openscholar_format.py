@@ -70,21 +70,21 @@ def generate_response(prompt: str, task: Task, initial: bool=False, previous_cha
                 {"role": "user", "content": prompt}
             ]
             
-        print(messages)
+        #print(messages)
     else: # follow-up question
         full_prompt = prompt
         assert previous_chat is not None
         previous_chat.append({"role": "user", "content": full_prompt})
         messages = previous_chat
     
-    chat = llama_request(messages, port="8002")
+    chat = llama_request(messages, port="8004")
     
     return chat
 
 
 
-def chatbot(prompt: str|None):
-    print("\nStarting ...")
+def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True) -> None|Tuple[str, References]:
+    #print("\nStarting ...")
 
     initial = True
     chat = None
@@ -108,7 +108,7 @@ def chatbot(prompt: str|None):
         if initial:
             if task == Task.MultiQA:
                 references = References.retrieve_from_vector_store(prompt, topk=10, port=8003)
-                references.drop_refs_with_low_score(threshold=0.25)
+                references.drop_refs_with_low_score(threshold=0.1)
 
             chat = generate_response(prompt, task=task, initial=initial, references=references)
         else:
@@ -126,13 +126,16 @@ def chatbot(prompt: str|None):
         chat['generated_text'][-1]['content'] = reply
         
         # Print the response (+ potentially References)
-        print("\nResponse:\n")
-        print(reply)
-        if len(formatted_references) > 0:
-            print("\nReferences:\n")
-            print(formatted_references)
-        print("")
+        if print_outputs:
+            print("\nResponse:\n")
+            print(reply)
+            if len(formatted_references) > 0:
+                print("\nReferences:\n")
+                print(formatted_references)
+            print("")
         initial = False
+        if not continuous_chat:
+            return reply, references
 
 
 if __name__=="__main__":
