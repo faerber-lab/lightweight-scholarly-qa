@@ -54,3 +54,7 @@ def retrieve(rag_query: RAGQuery):
         return vector_store.similarity_search_with_relevance_scores(rag_query.query, k=rag_query.k)
     except Exception:
         return "FAIL"
+
+@app.get("/healthy/")
+def healthy():
+    return {"status": "OK"}

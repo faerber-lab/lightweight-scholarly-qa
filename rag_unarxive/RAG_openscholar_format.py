@@ -19,7 +19,7 @@ class Task(Enum):
     MultiQA = 0
     FollowUpQuestion = 1
 
-def multi_qa_context(references: References) -> str:
+def multi_qa_context(references: References, no_rag: bool=False) -> str:
     """Format retrieved documents into a context string for the MultiQA task."""
     
     # [sic!] 
@@ -32,18 +32,22 @@ def multi_qa_context(references: References) -> str:
               "comprehensive overview of the area based on your answer. All of " \
               "citation-worthy statements need to be supported by one of the " \
               "references we provide as 'References' and appropriate citation " \
-              "numbers should be added at the end of the sentences. If no references  "\
+              "numbers should be added at the end of the sentences."
+    
+    if no_rag:
+        context += "\n"
+    else:
+        context += "If no references  "\
               "are given, do not give an answer, instead point out that you could "\
               "not find any references!\nReferences:\n"
-    
-    context += references.format_for_context()
+        context += references.format_for_context()
 
     context += "Question: "
 
     return context
 
 
-def generate_response(prompt: str, task: Task, initial: bool=False, previous_chat=None, references: References|None=None) -> Any:
+def generate_response(prompt: str, task: Task, initial: bool=False, previous_chat=None, references: References|None=None, no_rag: bool=False) -> Any:
     """Generate a response"""
 
     # If this is the first call, we potentially have to add system prompt or RAG context
@@ -51,8 +55,8 @@ def generate_response(prompt: str, task: Task, initial: bool=False, previous_cha
         # Format context
         if task == Task.MultiQA:
             # check if references were found
-            if references and len(references) > 0:
-                context = multi_qa_context(references)
+            if no_rag or (references and len(references) > 0):
+                context = multi_qa_context(references, no_rag)
                 # Combine context and prompt
                 full_prompt = context + prompt
                 messages = [
@@ -83,7 +87,7 @@ def generate_response(prompt: str, task: Task, initial: bool=False, previous_cha
 
 
 
-def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True) -> None|Tuple[str, References]:
+def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True, no_rag=False, no_clean_refs=False) -> None|Tuple[str, References]:
     #print("\nStarting ...")
 
     initial = True
@@ -107,18 +111,22 @@ def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True) ->
         references = None
         if initial:
             if task == Task.MultiQA:
-                references = References.retrieve_from_vector_store(prompt, topk=10, port=8003)
-                references.drop_refs_with_low_score(threshold=0.1)
+                if no_rag:
+                    references = References()
+                else:
+                    references = References.retrieve_from_vector_store(prompt, topk=10, port=8003)
+                    references.drop_refs_with_low_score(threshold=0.1)
 
-            chat = generate_response(prompt, task=task, initial=initial, references=references)
+            chat = generate_response(prompt, task=task, initial=initial, references=references, no_rag=no_rag)
         else:
-            chat = generate_response(prompt, task=Task.FollowUpQuestion, initial=initial, references=references, previous_chat=chat['generated_text'])
+            chat = generate_response(prompt, task=Task.FollowUpQuestion, initial=initial, references=references, previous_chat=chat['generated_text'], no_rag=no_rag)
         
         reply = chat['generated_text'][-1]['content']
 
         if references: 
-            reply, references = clean_references(reply, references)
-            references.update_from_semanticscholar()
+            if not no_clean_refs:
+                reply, references = clean_references(reply, references)
+                references.update_from_semanticscholar()
             formatted_references = references.format_for_references()
         else:
             formatted_references = ""

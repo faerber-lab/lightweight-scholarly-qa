@@ -11,6 +11,11 @@ from peft import LoraConfig, TaskType, get_peft_model
 from trl import SFTConfig, SFTTrainer, DataCollatorForCompletionOnlyLM
 from datasets import load_dataset
 
+
+# Distributed initialization (ensures correct setup)
+torch.distributed.init_process_group(backend="nccl")
+
+
 print("done loading libs")
 print("loading model")
 
@@ -20,6 +25,7 @@ print("loading model")
 model_base_name = "Llama-3.2-3B-Instruct"
 model_name = f"meta-llama/{model_base_name}"
 
+"""
 model_in_cache_name = f"models--{model_name.split('/')[0]}--{model_name.split('/')[1]}"
 
 model_snapshot = (
@@ -46,7 +52,8 @@ if os.path.exists(cache_path):
 else:
     print("Model does not exist in cache -> download")
     model_path = model_name
-
+"""
+model_path = model_name
 
 base_model = AutoModelForCausalLM.from_pretrained(
     model_path, torch_dtype=torch.bfloat16
@@ -58,6 +65,7 @@ tokenizer.pad_token = tokenizer.eos_token
 
 
 # Peft model
+
 peft_config = LoraConfig(
     task_type=TaskType.CAUSAL_LM,
     inference_mode=False,
@@ -147,21 +155,22 @@ model.train()
 
 training_args = SFTConfig(
     max_seq_length=16384,
-    output_dir="./model_checkpoints_100percent_lora32_shuffled_split_16k_context_2_epoch/",
+    output_dir="./model_checkpoints_100percent_lora32_shuffled_split_16k_context_2_epoch_dist_train_bs64/",
     per_device_train_batch_size=1,
     per_device_eval_batch_size=2,
     learning_rate=0.000005,
     lr_scheduler_type="cosine",
     bf16=True,
-    gradient_accumulation_steps=16,
+    gradient_accumulation_steps=2,
     logging_steps=50,
     eval_steps=250,
     weight_decay=0.01,
     warmup_steps=200,
     max_grad_norm=0.01,
-    num_train_epochs=2,
+    num_train_epochs=5,
     load_best_model_at_end=True,
     eval_strategy="steps",
+    ddp_find_unused_parameters=False,  # Important for multi-GPU training
 )
 trainer = SFTTrainer(
     model=model,
