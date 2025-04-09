@@ -14,18 +14,18 @@ import shutil
 
 print("Initializing vector store...")
 faiss_path = "/data/horse/ws/s9650707-llm_secrets/datasets/unarxive/faiss_index3"
-tmp_base_path = "/tmp/s9650707/faiss/"
-faiss_tmp_path = os.path.join(tmp_base_path, "unarxive/faiss_index3")
+#tmp_base_path = "/tmp/s9650707/faiss/"
+#faiss_tmp_path = os.path.join(tmp_base_path, "unarxive/faiss_index3")
 
-if not os.path.exists(tmp_base_path):
-    os.makedirs(tmp_base_path)
-if not os.path.exists(faiss_tmp_path):
-    print("Copying faiss data to tmp")
-    shutil.copytree(faiss_path, faiss_tmp_path)
+#if not os.path.exists(tmp_base_path):
+#    os.makedirs(tmp_base_path)
+#if not os.path.exists(faiss_tmp_path):
+#    print("Copying faiss data to tmp")
+#    shutil.copytree(faiss_path, faiss_tmp_path)
 
 vector_store = initialize_rag(
     markdown_dir=None,
-    faiss_index_file = faiss_tmp_path,
+    faiss_index_file = faiss_path,
     load_index_from_file=True,
     store_index_to_file=False,
     max_files=None

@@ -28,32 +28,33 @@ class Reference:
 
     def format_for_context(self, id: int) -> str:
         content_cleaned = self.content
-        content_cleaned.replace("{{cite:}}", "")
-        content_cleaned.replace(", ,", "")
-        content_cleaned.replace(" , ", ", ")
-        content_cleaned.replace("..", "")
-        content_cleaned.replace("\n", " ")
-        content_cleaned.replace("  ", " ")
+        content_cleaned = content_cleaned.replace("{{cite:}}", "")
+        content_cleaned = content_cleaned.replace(", ,", "")
+        content_cleaned = content_cleaned.replace(" , ", ", ")
+        content_cleaned = content_cleaned.replace("..", "")
+        content_cleaned = content_cleaned.replace("\n", " ")
+        content_cleaned = content_cleaned.replace("  ", " ")
         return f"[{id}] {content_cleaned}\n"
     
     def format_for_references(self, id: int) -> str:
         reftext = f"[{id}] {self.authors}. \"{self.title}\". {self.venue}, {self.url}"
-        reftext.replace(", ,", "")
-        reftext.replace(" , ", ", ")
-        reftext.replace("..", "")
-        reftext.replace("\n", " ")
-        reftext.replace("  ", " ")
+        reftext = reftext.replace("{{cite:}}", "")
+        reftext = reftext.replace(", ,", "")
+        reftext = reftext.replace(" , ", ", ")
+        reftext = reftext.replace("..", "")
+        reftext = reftext.replace("\n", " ")
+        reftext = reftext.replace("  ", " ")
         reftext = reftext + "\n"
         return reftext
 
     def cleaned_content(self) -> str:
         content_cleaned = self.content
-        content_cleaned.replace("{{cite:}}", "")
-        content_cleaned.replace(", ,", "")
-        content_cleaned.replace(" , ", ", ")
-        content_cleaned.replace("..", "")
-        content_cleaned.replace("\n", " ")
-        content_cleaned.replace("  ", " ")
+        content_cleaned = content_cleaned.replace("{{cite:}}", "")
+        content_cleaned = content_cleaned.replace(", ,", "")
+        content_cleaned = content_cleaned.replace(" , ", ", ")
+        content_cleaned = content_cleaned.replace("..", "")
+        content_cleaned = content_cleaned.replace("\n", " ")
+        content_cleaned = content_cleaned.replace("  ", " ")
         return f"{content_cleaned}"
 
 
@@ -175,6 +176,18 @@ def clean_citations(text: str) -> str:
 def remove_generated_references(text: str) -> str:
     split_text = text.split("References:")
     return split_text[0]
+
+def remove_after_excessive_linebreak(text: str) -> str:
+    split_text = text.split("\n\n\n")
+    return split_text[0]
+
+def remove_cites_after_linebreak_or_dot(text: str) -> str:
+    match = re.search(r'(\.)(?=\s*\[\d+\])|\n\s*\[\d+\]', text)
+    if match:
+        end = match.start(1) + 1 if match.group(1) else match.start()
+        return text[:end]
+    return text
+
 
 def clean_references(reply: str, references: References) -> Tuple[str, References]:
     reply, references = remove_unused_references(reply, references)

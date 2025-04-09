@@ -37,7 +37,11 @@ lora_model = os.environ.get("LORA_MODEL", None)
 
 print(f"{base_model=}\n{lora_model=}")
 llm = LLM(model=base_model, enable_lora=True, max_model_len=16384, max_lora_rank=32)
-sampling_params = SamplingParams(temperature=0.7, top_p=0.9, max_tokens=3000, frequency_penalty=1.2, n=1, best_of=6)
+tokenizer = llm.get_tokenizer()
+sampling_params = SamplingParams(temperature=0.7, top_p=0.9, max_tokens=3000, 
+        stop_token_ids=[tokenizer.eos_token_id, tokenizer.convert_tokens_to_ids("<|eot_id|>"), tokenizer.convert_tokens_to_ids("<|eom_id|>")],
+        stop=["References", "\nReferences", "*References", "\n*References"], 
+)#frequency_penalty=1.2, n=1, best_of=6)
 
 if lora_model is None or lora_model == "":
     openscholar_lora_request = None

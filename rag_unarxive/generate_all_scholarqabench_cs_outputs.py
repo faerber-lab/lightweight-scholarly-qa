@@ -22,19 +22,18 @@ BASE_MODELS = {
 LORA_MODELS = {
     "Llama_8B": {},
     "Llama_3B": {
-        "finetuned_8k_1epoch": "model_checkpoints_100percent_lora32_shuffled_split/checkpoint-7970",
-        "finetuned_8k_2epoch": "model_checkpoints_100percent_lora32_shuffled_split_8k_context_2_epoch/checkpoint-3984",
-        "finetuned_16k_1epoch": "model_checkpoints_100percent_lora32_shuffled_split_16k_context/checkpoint-3985",
+        #"finetuned_8k_1epoch": "model_checkpoints_100percent_lora32_shuffled_split/checkpoint-7970",
+        #"finetuned_8k_2epoch": "model_checkpoints_100percent_lora32_shuffled_split_8k_context_2_epoch/checkpoint-3984",
+        #"finetuned_16k_1epoch": "model_checkpoints_100percent_lora32_shuffled_split_16k_context/checkpoint-3985",
         "finetuned_16k_2epoch": "model_checkpoints_100percent_lora32_shuffled_split_16k_context_2_epoch_dist_train/checkpoint-1992",
-        "finetuned_16k_2epoch_bs16": "model_checkpoints_100percent_lora32_shuffled_split_16k_context_2_epoch_dist_train_bs16/checkpoint-15942",
-        "finetuned_16k_5epoch_bs64": "model_checkpoints_100percent_lora32_shuffled_split_16k_context_5_epoch_dist_train_bs64/checkpoint-9965"
+        #"finetuned_16k_2epoch_bs16": "model_checkpoints_100percent_lora32_shuffled_split_16k_context_2_epoch_dist_train_bs16/checkpoint-15942"
     }
 }
 
 RAG_PORT = 8003
 LLAMA_PORT = 8004
 
-OUTPUT_BASE_DIR = "output_scholarqabench_multiqa_nobeam_stop_on_references/"
+OUTPUT_BASE_DIR = "output_scholarqabench_cs/"
 
 @dataclass
 class RunSetup:
@@ -47,9 +46,9 @@ RAG_ENABLED = [False, True]
 
 runs: List[RunSetup] = []
 
-for name, model in BASE_MODELS.items():
-    for rag_en in RAG_ENABLED:
-        runs.append(RunSetup(name, model, "", rag_en))
+#for name, model in BASE_MODELS.items():
+#    for rag_en in RAG_ENABLED:
+#        runs.append(RunSetup(name, model, "", rag_en))
 
 for base_name, lora_models in LORA_MODELS.items():
     for lora_name, lora_dir in lora_models.items():
@@ -107,7 +106,7 @@ signal.signal(signal.SIGINT, signal_handler)
 rag_process = subprocess.Popen(["bash", "-c", "source ~/.bashrc; set_capella_env && . ./start_rag_server.sh"])
 
 
-for i,run in enumerate(reversed(runs)):
+for i,run in enumerate(runs):
     print(f"Generation run {i}/{len(runs)}: {run}")
     env = {}
     env.update(os.environ)
@@ -135,7 +134,7 @@ for i,run in enumerate(reversed(runs)):
         name += "_NO_RAG"
     generate_output_dir = os.path.join(OUTPUT_BASE_DIR, name)
     print(f"{name=}, {generate_output_dir=}")
-    generate_process = subprocess.Popen(["bash", "-c", f"source ~/.bashrc; set_capella_env && python generate_scholarqabench_multiqa_output.py --topk 10 --output_dir {generate_output_dir}{'' if run.use_rag else ' --no_rag'}"])
+    generate_process = subprocess.Popen(["bash", "-c", f"source ~/.bashrc; set_capella_env && python generate_scholarqabench_cs_output.py --output_dir {generate_output_dir}{'' if run.use_rag else ' --no_rag'}"])
     generate_process.wait()
 
     stop_process(llama_process)

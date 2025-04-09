@@ -82,13 +82,14 @@ peft_config = LoraConfig(
         "o_proj",
     ],
 )
-peft_model = get_peft_model(base_model, peft_config)
+#peft_model = get_peft_model(base_model, peft_config)
 
-peft_model.num_parameters()
-peft_model.print_trainable_parameters()
+#peft_model.num_parameters()
+#peft_model.print_trainable_parameters()
 
 
-model = peft_model
+#model = peft_model
+model = base_model
 
 print("loading dataset")
 
@@ -155,19 +156,19 @@ model.train()
 
 training_args = SFTConfig(
     max_seq_length=16384,
-    output_dir="./model_checkpoints_100percent_lora32_shuffled_split_16k_context_2_epoch_dist_train_bs64/",
+    output_dir="./model_checkpoints_100percent_nolora_shuffled_split_16k_context_1_epoch_dist_train_bs64/",
     per_device_train_batch_size=1,
     per_device_eval_batch_size=2,
     learning_rate=0.000005,
     lr_scheduler_type="cosine",
     bf16=True,
-    gradient_accumulation_steps=2,
+    gradient_accumulation_steps=4,
     logging_steps=50,
     eval_steps=250,
     weight_decay=0.01,
     warmup_steps=200,
     max_grad_norm=0.01,
-    num_train_epochs=5,
+    num_train_epochs=1,
     load_best_model_at_end=True,
     eval_strategy="steps",
     ddp_find_unused_parameters=False,  # Important for multi-GPU training

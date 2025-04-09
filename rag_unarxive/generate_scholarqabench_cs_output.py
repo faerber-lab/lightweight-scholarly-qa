@@ -6,14 +6,13 @@ from tqdm import tqdm
 
 from RAG_openscholar_format import chatbot
 
-SCHOLARQABENCH_DIR = "/data/horse/ws/s9650707-llm_secrets/datasets/scholarqabench/ScholarQABench/data/scholarqa_multi/"
-INPUT_FILE = os.path.join(SCHOLARQABENCH_DIR, "human_answers.json")
+SCHOLARQABENCH_DIR = "/data/horse/ws/s9650707-llm_secrets/datasets/scholarqabench/ScholarQABench/data/scholarqa_cs/"
+INPUT_FILE = os.path.join(SCHOLARQABENCH_DIR, "test_configs_snippets.json")
 
-OUTPUT_DIR = "./output_scholarqabench_multiqa/"
+OUTPUT_DIR = "./output_scholarqabench_cs/"
 
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("--output_dir", default=OUTPUT_DIR, type=str)
-parser.add_argument("--topk", default=10, type=int)
 parser.add_argument("--no_rag", action='store_true', default=False)
 args = parser.parse_args()
 
@@ -35,35 +34,34 @@ total_count = len(input_data)
 
 
 
+
 results = []
 for i, inp in tqdm(enumerate(input_data), total=total_count):
     print("")
-    question = inp["input"]
-    result = chatbot(question, continuous_chat=False, print_outputs=False, no_rag=args.no_rag, no_clean_refs=True, rag_topk=args.topk, remove_gen_reflist=False, no_remove_after_excessive_linebreak=True, no_remove_cite_after_linebreak_or_dot=True)
+    case_id = inp["case_id"]
+    question = inp["initial_prompt"]
+    print(case_id, question)
+    result = chatbot(question, continuous_chat=False, print_outputs=False, no_rag=args.no_rag, no_clean_refs=True)
     assert result is not None
     reply = result[0]
     references = result[1]
-    orig_reply = result[2]
     if args.no_rag:
         references.clear()
 
     result = {
+        "case_id": case_id,
         "input": question,
         "ctxs": [
             {
                 "title": ref.title,
                 "text": ref.cleaned_content(),
-
             }
             for ref in references
         ],
         "annotator": inp["annotator"],
-        "id": inp["id"],
-        "subject": inp["subject"],
-        "output": reply,
-        "orig_output": orig_reply
+        "output": reply
     }
-    results.append(result)
+    results.append({"data": result})
 
     with open(OUTPUT_FILE, "w") as f:
         json.dump(results, f)

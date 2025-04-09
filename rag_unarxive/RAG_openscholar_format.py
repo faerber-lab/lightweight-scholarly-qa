@@ -3,9 +3,11 @@
 
 print("Loading argparse, sys, re...")
 import argparse
+import pprint
+import os
 import sys
 from enum import Enum
-from references import References, clean_references
+from references import References, clean_references, remove_after_excessive_linebreak, remove_cites_after_linebreak_or_dot, remove_generated_references
 
 print("Loading llama_requests...")
 from llama_request import llama_request
@@ -40,7 +42,11 @@ def multi_qa_context(references: References, no_rag: bool=False) -> str:
         context += "If no references  "\
               "are given, do not give an answer, instead point out that you could "\
               "not find any references!\nReferences:\n"
+        context += "\nReferences:\n"
         context += references.format_for_context()
+
+        #print(references.format_for_context())
+        #pprint.pp(references)
 
     context += "Question: "
 
@@ -81,13 +87,13 @@ def generate_response(prompt: str, task: Task, initial: bool=False, previous_cha
         previous_chat.append({"role": "user", "content": full_prompt})
         messages = previous_chat
     
-    chat = llama_request(messages, port="8004")
+    chat = llama_request(messages, port=os.environ.get("LLAMA_PORT", "8004"))
     
     return chat
 
 
 
-def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True, no_rag=False, no_clean_refs=False) -> None|Tuple[str, References]:
+def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True, no_rag=False, no_clean_refs=False, rag_topk=10, remove_gen_reflist=True, no_remove_after_excessive_linebreak=False, no_remove_cite_after_linebreak_or_dot=False) -> None|Tuple[str, References, str]:
     #print("\nStarting ...")
 
     initial = True
@@ -114,7 +120,7 @@ def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True, no
                 if no_rag:
                     references = References()
                 else:
-                    references = References.retrieve_from_vector_store(prompt, topk=10, port=8003)
+                    references = References.retrieve_from_vector_store(prompt, topk=rag_topk, port=int(os.environ.get("RAG_PORT", 8003)))
                     references.drop_refs_with_low_score(threshold=0.1)
 
             chat = generate_response(prompt, task=task, initial=initial, references=references, no_rag=no_rag)
@@ -130,6 +136,19 @@ def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True, no
             formatted_references = references.format_for_references()
         else:
             formatted_references = ""
+        
+        orig_reply = reply
+
+        if remove_gen_reflist:
+            reply = remove_generated_references(reply)
+        
+        if not no_remove_after_excessive_linebreak:
+            reply = remove_after_excessive_linebreak(reply)
+        
+        if not no_remove_cite_after_linebreak_or_dot:
+            reply = remove_cites_after_linebreak_or_dot(reply)
+
+        #print(f"\n{remove_gen_reflist=}, {no_remove_after_excessive_linebreak=}, {no_remove_cite_after_linebreak_or_dot=}\n")
 
         chat['generated_text'][-1]['content'] = reply
         
@@ -141,16 +160,21 @@ def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True, no
                 print("\nReferences:\n")
                 print(formatted_references)
             print("")
+            print(orig_reply)
+            print("")
         initial = False
         if not continuous_chat:
-            return reply, references
+            return reply, references, orig_reply
 
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt", type=str, default=None)
+    parser.add_argument("--topk", type=int, default=10)
+    parser.add_argument("--no_clean_refs", action="store_true", default=False)
     args = parser.parse_args()
-    chatbot(args.prompt)
+    print(args)
+    chatbot(prompt=args.prompt, rag_topk=args.topk, no_clean_refs=args.no_clean_refs)
 
 
 
