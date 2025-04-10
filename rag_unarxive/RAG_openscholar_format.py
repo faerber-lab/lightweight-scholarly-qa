@@ -6,8 +6,21 @@ import argparse
 import pprint
 import os
 import sys
+import os.path
+import spacy
 from enum import Enum
 from references import References, clean_references, remove_after_excessive_linebreak, remove_cites_after_linebreak_or_dot, remove_generated_references
+from thefuzz import fuzz
+from references import References, clean_references
+from classify_prompt import Task, classify_prompt
+
+# nlp used for paper/author named entity recognition
+ner_nlp = spacy.load("en_core_web_sm")
+ner_nlp_path = "/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy"
+if os.path.isfile(ner_nlp_path):
+    ner_nlp.from_disk(ner_nlp_path)
+else:
+    print("WARNING: NER model trained on paper titles missing. The default one does not work correctly.")
 
 print("Loading llama_requests...")
 from llama_request import llama_request
@@ -17,14 +30,10 @@ from typing import Any, List, Tuple
 print("Loading done...")
 
 
-class Task(Enum):
-    MultiQA = 0
-    FollowUpQuestion = 1
-
 def multi_qa_context(references: References, no_rag: bool=False) -> str:
     """Format retrieved documents into a context string for the MultiQA task."""
-    
-    # [sic!] 
+
+    # [sic!]
     context = "Answer the following question related to the recent research. " \
               "Your answer should be detailed and informative, and is likely " \
               "to be more than one paragraph. Your answer should be horistic, "  \
@@ -35,7 +44,7 @@ def multi_qa_context(references: References, no_rag: bool=False) -> str:
               "citation-worthy statements need to be supported by one of the " \
               "references we provide as 'References' and appropriate citation " \
               "numbers should be added at the end of the sentences."
-    
+
     if no_rag:
         context += "\n"
     else:
@@ -59,7 +68,7 @@ def generate_response(prompt: str, task: Task, initial: bool=False, previous_cha
     # If this is the first call, we potentially have to add system prompt or RAG context
     if initial:
         # Format context
-        if task == Task.MultiQA:
+        if task == Task.MULTIQA:
             # check if references were found
             if no_rag or (references and len(references) > 0):
                 context = multi_qa_context(references, no_rag)
@@ -74,33 +83,35 @@ def generate_response(prompt: str, task: Task, initial: bool=False, previous_cha
             system_prompt = "You are a helpful assistant. Answer the user's queries with highest attention to correctness. Be concise and give short answers, only adding strictly necessary detail. Do not write more than is asked."
             messages = [
                 {
-                    "role": "system", 
+                    "role": "system",
                     "content": system_prompt
                 },
                 {"role": "user", "content": prompt}
             ]
-            
+
         #print(messages)
     else: # follow-up question
         full_prompt = prompt
         assert previous_chat is not None
         previous_chat.append({"role": "user", "content": full_prompt})
         messages = previous_chat
-    
-    chat = llama_request(messages, port=os.environ.get("LLAMA_PORT", "8004"))
-    
-    return chat
 
+    chat = llama_request(messages, port="8000")
+
+    return chat
 
 
 def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True, no_rag=False, no_clean_refs=False, rag_topk=10, remove_gen_reflist=True, no_remove_after_excessive_linebreak=False, no_remove_cite_after_linebreak_or_dot=False) -> None|Tuple[str, References, str]:
     #print("\nStarting ...")
 
     initial = True
+    prompt_classification = False 
     chat = None
     references = None
 
-    
+    global ner_nlp
+    ner_nlp.from_disk("/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy")
+
     # make interactive rag
     while True:
         if prompt is None or not initial:
@@ -109,27 +120,58 @@ def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True, no
             break
         if not prompt:
             continue
-        
+
         # Until we have the task classification, we fix the task here
-        task = Task.MultiQA
+        task = Task.MULTIQA
+        if prompt_classification:
+            print ("The task of the prompt is {}".format(classify_prompt(prompt)))
+            prompt = None
+            continue
 
         # Generate and stream response
         references = None
         if initial:
-            if task == Task.MultiQA:
+            if task == Task.SIMPLIFICATION:
+                # TODO
+                ########
+                ########
+                ########
+                ########
+                ########
+                # get paper title and do a fuzzy search in RAG database + add text to prompt + send to llama
+                get_paper_title(prompt)
+                fuzz.ratio("this is a test", "this is a test!")
+                #retrieved_docs = rag_request.rag_request(prompt="<paper-title>", k=topk, port=port)
+
+            elif task == Task.SUMMARIZATION:
+                # TODO
+                ########
+                ########
+                ########
+                ########
+                ########
+                # get paper title and do a fuzzy search in RAG database + add text to prompt + send to llama
+                get_paper_title(prompt)
+                fuzz.ratio("this is a test", "this is a test!")
+                #retrieved_docs = rag_request.rag_request(prompt="<paper-title>", k=topk, port=port)
+
+            elif task == Task.FACT_REQUEST:
+                chat = generate_response_kg_request(prompt)
+
+            elif task == Task.MULTIQA:
                 if no_rag:
                     references = References()
                 else:
                     references = References.retrieve_from_vector_store(prompt, topk=rag_topk, port=int(os.environ.get("RAG_PORT", 8003)))
                     references.drop_refs_with_low_score(threshold=0.1)
 
-            chat = generate_response(prompt, task=task, initial=initial, references=references, no_rag=no_rag)
+                chat = generate_response(prompt, task=task, initial=initial, references=references, no_rag=no_rag)
         else:
-            chat = generate_response(prompt, task=Task.FollowUpQuestion, initial=initial, references=references, previous_chat=chat['generated_text'], no_rag=no_rag)
-        
+            chat = generate_response(prompt, task=Task.FOLLOWUPQUESTION, initial=initial, references=references, previous_chat=chat['generated_text'], no_rag=no_rag)
+
         reply = chat['generated_text'][-1]['content']
 
-        if references: 
+        if references:
             if not no_clean_refs:
                 reply, references = clean_references(reply, references)
                 references.update_from_semanticscholar()
@@ -151,7 +193,7 @@ def chatbot(prompt: str|None, continuous_chat: bool=True, print_outputs=True, no
         #print(f"\n{remove_gen_reflist=}, {no_remove_after_excessive_linebreak=}, {no_remove_cite_after_linebreak_or_dot=}\n")
 
         chat['generated_text'][-1]['content'] = reply
-        
+
         # Print the response (+ potentially References)
         if print_outputs:
             print("\nResponse:\n")

@@ -105,7 +105,6 @@ def get_auth_data_by_name(name: str):
     i10_index = auth_i10_index(soa_id)
     orcid_id = auth_orcid_id(soa_id)
     institute = auth_institute_name(soa_id)
-    #work_titles = auth_created_works_names(soa_id)
     work_titles = translate_ids(auth_created_works(soa_id), work_title)
 
     print("""
@@ -188,7 +187,6 @@ def topic_name(soa_id: str) -> str:
     return ret['results']['bindings'][0]['obj']['value']
 
 def get_work_data_by_name(title: str):
-    # ending page, publucation date, starting page, creator, title, cites
     soa_id = work_soa_id(title)
     title = work_title(soa_id)
     doi = work_doi(soa_id)
@@ -244,5 +242,7 @@ def get_work_data_by_name(title: str):
     for idx, work_str in enumerate(cited_by_papers):
         print("            {}) {}".format(idx, work_str))
 
-get_work_data_by_name("Dynamic Power Management for Neuromorphic Many-Core Systems")
-get_auth_data_by_name("Bernhard Vogginger")
+
+if __name__ == "__main__":
+    get_work_data_by_name("Dynamic Power Management for Neuromorphic Many-Core Systems")
+    get_auth_data_by_name("Bernhard Vogginger")
