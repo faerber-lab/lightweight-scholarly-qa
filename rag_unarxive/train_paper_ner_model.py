@@ -14,6 +14,7 @@
 
 # if NER fails -> can I fuzzy search for a paper title from the list of available papers?
 
+import os 
 import spacy
 import random
 import pickle
@@ -25,6 +26,75 @@ from spacy.training import Example
 from spacy.language import Language
 from classify_prompt import get_summarization_questions, get_simplification_questions
 spacy.prefer_gpu()
+
+# nlp used for paper/author named entity recognition
+ner_nlp = spacy.load("en_core_web_sm")
+ner_nlp_path = "/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy"
+if os.path.isdir(ner_nlp_path):
+    ner_nlp.from_disk(ner_nlp_path)
+else:
+    print("WARNING: NER model trained on paper titles missing. The default one might not work correctly.")
+
+
+def get_text_from_paper_title(title):
+    with open('title_to_file.pkl', 'rb') as f:
+        title_to_file = pickle.load(f)
+
+    fnames = title_to_file[title]
+
+    content = ""
+    for fname in fnames:
+        with open(fname, 'r') as file:
+            new_content = file.read()
+            content = content + new_content.split("## Content")[1] + "\n"
+        
+    if content == "":
+        print("ERROR: content empty")
+
+
+def search_for_paper_title(prompt, fthresh=70):
+    paper_title = get_ner_paper_title(prompt)
+    if paper_title is None:
+        return None
+
+    else:
+        with open('title_to_file.pkl', 'rb') as f:
+            title_to_file = pickle.load(f)
+        list_of_works = list(title_to_file.keys())
+        curr_ratio = 0
+        curr_work = None
+        for work in list_of_works:
+            fratio = fuzz.ratio(paper_title, work)
+
+            if fration>=fthresh and fratio>curr_ratio:
+                curr_ratio = fratio
+                curr_work = work
+
+    if curr_work is None:
+        print("ERROR: found no fitting paper title")
+
+    return curr_work
+
+
+def get_ner_paper_title(prompt):
+    doc = ner_nlp(q)
+    paper_titles = []
+    if doc.ents:
+        for ent in doc.ents:
+            if ent.label_ == "PAPER":
+                paper_titles.append(ent.text)
+    else:
+        print("ERROR: found no entities")
+        return None
+
+    if len(paper_titles) == 0:
+        print("ERROR: found no PAPER entities")
+        return None
+    elif len(paper_titles) == 1: 
+        return paper_titles[0] 
+    else:
+        print("WARNING: found multiple paper titles in text -> give out first one")
+        return paper_titles[0] 
 
 
 def print_doc_entities(_doc: Doc):
@@ -104,10 +174,7 @@ def train_paper_ner(nlp: Language):
     # Save ner model
     #nlp.to_disk("/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy")
 
-def main():
+if __name__ == '__main__':
     nlp = spacy.load('en_core_web_sm')
     train_paper_ner(nlp)
 
-
-if __name__ == '__main__':
-    main()

@@ -56,7 +56,7 @@ You will be presented with a metadata request. Classify the intent behind this t
 - cited-by-count: get how ofter an Author was cited
 - institute: get the institute from an author
 - works-or-papers: get all works or papers by name from an author
-- type: get the work type 
+- type: get the work type
 - publication-date: get the work publication date
 - cites: get how often a work was cited
 - topic: get the primary topic of a work
@@ -84,7 +84,7 @@ Your answer should be a single word from the following list of options: ["number
 KG_ACCESS_CLASSIFIER_WORK = """
 You will be presented with a metadata request for a work or paper. Classify the intent behind this task by choosing from one of the following categories:
 
-- type: get the work type 
+- type: get the work type
 - publication-date: get the work publication date
 - cites: get how often a work was cited
 - topic: get the primary topic of a work
@@ -124,7 +124,7 @@ class Task(Enum):
     """
     MULTIQA = 0
     FOLLOWUPQUESTION = 1
-    SIMPLIFICATION = 2 
+    SIMPLIFICATION = 2
     SUMMARIZATION = 3
     FACT_REQUEST = 4
     SINGLEQA_YESNO = 5
@@ -262,12 +262,45 @@ def get_simplification_questions(list_of_works, num_of_questions=10):
         doc_repl               = questions[q_idx].replace('[[doc]]', list_of_works[w_idx])
         gen_questions[gen_idx] = doc_repl.replace('[[grade]]', grades[g_idx])
 
-        ## test if start/end position are borders of tokens
-        ##nlp.tokenizer.explain(gen_questions[gen_idx])
-        ##from IPython import embed; embed()
-        #doc = nlp(gen_questions[gen_idx])
-        #fb_ent = doc.char_span(doc_start, doc_start+len(list_of_works[w_idx]), label="PAPER")
-        #print(type(fb_ent))
+    return gen_questions, doc_positions
+
+
+def get_kg_request_questions_works(list_of_works, num_of_questions=10):
+    # TODO
+    questions = np.array([
+        "",
+    ])
+
+    #gen_questions = np.empty((num_of_questions), dtype=np.dtypes.StringDType)
+    gen_questions = np.empty((num_of_questions), dtype=np.dtypes.StrDType)
+    doc_positions = np.empty((num_of_questions, 2), dtype=int)
+    print("Generate {} summarization questions".format(num_of_questions))
+    for gen_idx in tqdm(range(num_of_questions)):
+        q_idx = random.randint(0, len(questions)-1)
+        w_idx = random.randint(0, len(list_of_works)-1)
+        doc_start = questions[q_idx].find('[[doc]]')
+        doc_positions[gen_idx] = [doc_start, doc_start+len(list_of_works[w_idx])]
+        gen_questions[gen_idx] = questions[q_idx].replace('[[doc]]', list_of_works[w_idx])
+
+    return gen_questions, doc_positions
+
+
+def get_kg_request_questions_author(list_of_authors, num_of_questions=10):
+    # TODO
+    questions = np.array([
+        "",
+    ])
+
+    #gen_questions = np.empty((num_of_questions), dtype=np.dtypes.StringDType)
+    gen_questions = np.empty((num_of_questions), dtype=np.dtypes.StrDType)
+    doc_positions = np.empty((num_of_questions, 2), dtype=int)
+    print("Generate {} summarization questions".format(num_of_questions))
+    for gen_idx in tqdm(range(num_of_questions)):
+        q_idx = random.randint(0, len(questions)-1)
+        w_idx = random.randint(0, len(list_of_works)-1)
+        doc_start = questions[q_idx].find('[[auth]]')
+        doc_positions[gen_idx] = [doc_start, doc_start+len(list_of_auth[w_idx])]
+        gen_questions[gen_idx] = questions[q_idx].replace('[[auth]]', list_of_auth[w_idx])
 
     return gen_questions, doc_positions
 
@@ -337,13 +370,13 @@ def classify_prompt(prompt: str, num_council: int=1):
         return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search
 
     if   answer == 'Summarization':
-        return Task.SUMMARIZATION 
+        return Task.SUMMARIZATION
     elif answer == 'Simplification':
-        return Task.SIMPLIFICATION 
+        return Task.SIMPLIFICATION
     elif answer == 'Fact-Request':
-        return Task.FACT_REQUEST 
+        return Task.FACT_REQUEST
     elif answer == 'Question-Answering':
-        return Task.MULTIQA 
+        return Task.MULTIQA
 
     return Task.UNSPECIFIED
 

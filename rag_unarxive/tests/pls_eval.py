@@ -16,13 +16,6 @@ from evaluate import load
 from tqdm import tqdm
 
 
-# load scitldr
-print("Load scitldr dataset")
-# Load the SciTLDR dataset from Hugging Face (AIC split, can also use Abstract, FullText not used in eval)
-dataset = load_dataset("allenai/scitldr", "AIC", split="test")  # use "validation" or "test" if needed
-#parts: ['train' (1.99k rows), 'validation' (619 rows), 'test' (618 rows)],
-#features: ['source', 'source_labels', 'rouge_scores', 'paper_id', 'target'],
-
 # initialize BertScorer and ROUGE scorer
 bertscore = load("bertscore")
 rouge_scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
@@ -72,6 +65,12 @@ def compute_score_for_example(source, targets, use_roberta_large=False):
 
 
 if __name__ == "__main__":
+    print("Load scitldr dataset")
+    # Load the SciTLDR dataset from Hugging Face (AIC split, can also use Abstract, FullText not used in eval)
+    dataset = load_dataset("allenai/scitldr", "AIC", split="test")  # use "validation" or "test" if needed
+    #parts: ['train' (1.99k rows), 'validation' (619 rows), 'test' (618 rows)],
+    #features: ['source', 'source_labels', 'rouge_scores', 'paper_id', 'target'],
+
     # eval AIC example papers
     dataset = dataset.select(range(10)) # use only part 
     results = []

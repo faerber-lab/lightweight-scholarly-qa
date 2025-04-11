@@ -7,21 +7,12 @@ import pprint
 import os
 import sys
 import os.path
-import spacy
 from enum import Enum
+from train_paper_ner_model import get_text_from_paper_title, search_for_paper_title
 from references import References, clean_references, remove_after_excessive_linebreak, remove_cites_after_linebreak_or_dot, remove_generated_references
 from thefuzz import fuzz
 from references import References, clean_references
 from classify_prompt import Task, classify_prompt
-
-# nlp used for paper/author named entity recognition
-ner_nlp = spacy.load("en_core_web_sm")
-ner_nlp_path = "/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy"
-if os.path.isdir(ner_nlp_path):
-    ner_nlp.from_disk(ner_nlp_path)
-else:
-    print("WARNING: NER model trained on paper titles missing. The default one does not work correctly.")
-
 
 print("Loading llama_requests...")
 from llama_request import llama_request
@@ -200,6 +191,19 @@ def generate_response(prompt: str, task: Task, context: Any=None, initial: bool=
             ]
             #else:
             #    return {'generated_text': [{'role': 'assistant', 'content': "Unfortunately, no references related to your question were found!"}]}
+        elif task == Task.SUMMARIZATION:
+            pass
+        elif task == Task.SUMMARIZATION_FETCH:
+            # check if references were found
+            if no_rag or (references and len(references) > 0):
+                context = multi_qa_context(references, no_rag)
+                # Combine context and prompt
+                full_prompt = context + prompt
+                messages = [
+                    {"role": "user", "content": full_prompt}
+                ]
+            else:
+                return {'generated_text': [{'role': 'assistant', 'content': "Unfortunately, no references related to your question were found!"}]}
         else:
             system_prompt = "You are a helpful assistant. Answer the user's queries with highest attention to correctness. Be concise and give short answers, only adding strictly necessary detail. Do not write more than is asked."
             messages = [
@@ -258,30 +262,26 @@ def chatbot(prompt: str|None, context=None, continuous_chat: bool=True, print_ou
         if initial:
             if task == Task.SIMPLIFICATION:
                 # TODO
-                ########
-                ########
-                ########
-                ########
-                ########
+                pass
+
+            elif task == Task.SIMPLIFICATION_FETCH:
                 # get paper title and do a fuzzy search in RAG database + add text to prompt + send to llama
-                get_paper_title(prompt)
-                fuzz.ratio("this is a test", "this is a test!")
-                #retrieved_docs = rag_request.rag_request(prompt="<paper-title>", k=topk, port=port)
+                content = get_text_from_paper_title(search_for_paper_title(prompt, fthresh=70))
+                # TODO
 
             elif task == Task.SUMMARIZATION:
                 # TODO
-                ########
-                ########
-                ########
-                ########
-                ########
+                pass
+
+            elif task == Task.SUMMARIZATION_FETCH:
                 # get paper title and do a fuzzy search in RAG database + add text to prompt + send to llama
-                get_paper_title(prompt)
-                fuzz.ratio("this is a test", "this is a test!")
-                #retrieved_docs = rag_request.rag_request(prompt="<paper-title>", k=topk, port=port)
+                content = get_text_from_paper_title(search_for_paper_title(prompt, fthresh=70))
+                # TODO
 
             elif task == Task.FACT_REQUEST:
-                chat = generate_response_kg_request(prompt)
+                # TODO
+                #chat = generate_response_kg_request(prompt)
+                pass
 
             elif task == Task.MULTIQA:
                 if no_rag:
