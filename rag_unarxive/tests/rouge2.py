@@ -6,7 +6,7 @@
 # Distributed under terms of the MIT license.
 
 """
-
+For train rouge_scores are almost as big as source (sentences), for test this is not the case...
 """
 
 from datasets import load_dataset
