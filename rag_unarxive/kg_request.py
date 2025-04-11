@@ -1,8 +1,7 @@
 #! /usr/bin/env python3
 
 import soa_sparql_access as soa
-from train_paper_ner_model import get_text_from_paper_title, search_for_paper_title
-
+from train_paper_ner_model import get_text_from_paper_title, search_for_paper_title, search_for_author_name
 """
 
 """
@@ -107,6 +106,7 @@ def identify_kg_request(prompt):
         if author in not None:
             has_author = True 
 
+        # TODO
         # check KG request with either llama or spacyTextCategorizer
         if use_spacy:
             pass
@@ -116,10 +116,12 @@ def identify_kg_request(prompt):
                 answer = chat['generated_text'][2]['content']
 
             elif has_author:
+                entity = author
                 chat = llama_request(messages_kg_eval_author, port=8000)
                 answer = chat['generated_text'][2]['content']
 
             elif has_work:
+                entity = work 
                 chat = llama_request(messages_kg_eval_work, port=8000)
                 answer = chat['generated_text'][2]['content']
 
@@ -127,6 +129,7 @@ def identify_kg_request(prompt):
                 print('ERROR: Prompt identified as KG access, but no author or work found.')
                 return None
 
+    return kg_task, entity
 
 def get_kg_response(kg_task, entity):
     if   kg_task = KGTemplate.AUTHOR_NUMBER_OF_WORKS:
@@ -182,5 +185,10 @@ def get_kg_response(kg_task, entity):
 
 
 def generate_response_kg_request(prompt : str):
-    return get_kg_response(identify_kg_request(prompt), entity)
+    return get_kg_response(identify_kg_request(prompt))
+
+
+if __name__ == "__main__":
+    generate_response_kg_request("Give me the h index of Matthias Jobst")
+
 
