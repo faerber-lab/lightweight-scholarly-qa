@@ -8,13 +8,13 @@
 """
 """
 
-#Negatives: 
+#Negatives:
 #    Please describe the paper FLARES VIII. The Emergence of Passive Galaxies in the Early Universe ($z > 5$) in a few sentences.
 #    Condense the novel $VH+\text{jet}$ production in hadron-hadron collisions up to order $\alpha_s^3$ in perturbative QCD into a brief summary of its main themes and events.
 
 # if NER fails -> can I fuzzy search for a paper title from the list of available papers?
 
-import os 
+import os
 import spacy
 import random
 import pickle
@@ -28,12 +28,33 @@ from classify_prompt import get_summarization_questions, get_simplification_ques
 spacy.prefer_gpu()
 
 # nlp used for paper/author named entity recognition
+nlp = spacy.load("en_core_web_sm")
 ner_nlp = spacy.load("en_core_web_sm")
 ner_nlp_path = "/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy"
 if os.path.isdir(ner_nlp_path):
     ner_nlp.from_disk(ner_nlp_path)
 else:
     print("WARNING: NER model trained on paper titles missing. The default one might not work correctly.")
+
+
+def get_ner_author_name(prompt, fthresh=70):
+    doc = nlp(q)
+    author_names = []
+    if doc.ents:
+        for ent in doc.ents:
+            if ent.label_ == "PERSON":
+                author_names.append(ent.text)
+    else:
+        print("ERROR: found no entities")
+        return None
+
+    if len(author_names) == 0:
+        print("ERROR: found no PAPER entities")
+        return None
+    elif len(author_names) == 1:
+        return author_names[0]
+    else:
+        print("WARNING: found multiple paper titles in text -> give out first one")
 
 
 def get_text_from_paper_title(title):
@@ -47,7 +68,7 @@ def get_text_from_paper_title(title):
         with open(fname, 'r') as file:
             new_content = file.read()
             content = content + new_content.split("## Content")[1] + "\n"
-        
+
     if content == "":
         print("ERROR: content empty")
 
@@ -90,11 +111,11 @@ def get_ner_paper_title(prompt):
     if len(paper_titles) == 0:
         print("ERROR: found no PAPER entities")
         return None
-    elif len(paper_titles) == 1: 
-        return paper_titles[0] 
+    elif len(paper_titles) == 1:
+        return paper_titles[0]
     else:
         print("WARNING: found multiple paper titles in text -> give out first one")
-        return paper_titles[0] 
+        return paper_titles[0]
 
 
 def print_doc_entities(_doc: Doc):

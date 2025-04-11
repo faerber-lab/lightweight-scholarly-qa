@@ -22,11 +22,6 @@ from tqdm import tqdm
 
 
 SYSTEM_PROMPT_CLASSIFIER = """
-You are a classifier who takes a user prompt and classify it into 3 different classes dependent on the question or
-demand. The available classes are summarization, simplification and question-answering.
-"""
-
-SYSTEM_PROMPT_CLASSIFIER = """
 You will be presented with a task text. Classify the intent behind this task by choosing from one of the following categories:
 - Summarization: reduce a provided longer text to a smaller one by filtering important information
 - Simplification: change a provided text to make it easier to understand
@@ -49,74 +44,6 @@ You will be presented with a task text. Classify the intent behind this task by 
 Your answer should be a single word from the following list of options: ["Summarization", "Simplification", "Question-Answering"]. Do not include any other text in your response.
 """
 
-KG_ACCESS_CLASSIFIER = """
-You will be presented with a metadata request. Classify the intent behind this task by choosing from one of the following categories:
-
-- number-of-works: get the number of works or papers from an Author
-- cited-by-count: get how ofter an Author was cited
-- institute: get the institute from an author
-- works-or-papers: get all works or papers by name from an author
-- type: get the work type
-- publication-date: get the work publication date
-- cites: get how often a work was cited
-- topic: get the primary topic of a work
-- abstract: get the work abstract
-- authors: get the list of authors from a work
-- cited-papers: get the list of papers that were cited in work
-- cited-by-papers: get the list of papers which cite the work
-- other: everything else
-
-Your answer should be a single word from the following list of options: ["number-of-works", "cited-by-count", "institute", "works-or-papers", "type", "publication-date", "cites", "topic", "abstract", "authors", "cited-papers", "cited-by-papers", "other"]. Do not include any other text in your response.
-"""
-
-KG_ACCESS_CLASSIFIER_AUTHOR = """
-You will be presented with a metadata request for an author. Classify the intent behind this task by choosing from one of the following categories:
-
-- number-of-works: get the number of works or papers from an author
-- cited-by-count: get how ofter an author was cited
-- institute: get the institute from an author
-- works-or-papers: get all works or papers by name from an author
-- other: everything else
-
-Your answer should be a single word from the following list of options: ["number-of-works", "cited-by-count", "institute", "works-or-papers", "other"]. Do not include any other text in your response.
-"""
-
-KG_ACCESS_CLASSIFIER_WORK = """
-You will be presented with a metadata request for a work or paper. Classify the intent behind this task by choosing from one of the following categories:
-
-- type: get the work type
-- publication-date: get the work publication date
-- cites: get how often a work was cited
-- topic: get the primary topic of a work
-- abstract: get the work abstract
-- authors: get the list of authors from a work
-- cited-papers: get the list of papers that were cited in work
-- cited-by-papers: get the list of papers which cite the work
-- other: everything else
-
-Your answer should be a single word from the following list of options: ["type", "publication-date", "cites", "topic", "abstract", "authors", "cited-papers", "cited-by-papers", "other"]. Do not include any other text in your response.
-"""
-
-
-SOA_METADATA = [
-    "author number of works",
-    "author h-index",
-    "author cited by count",
-    "author i10-Index",
-    "author orcid-Id",
-    "author institute",
-    "author works",
-    "work doi",
-    "work type",
-    "work publication date",
-    "work cites",
-    "work topic",
-    "work abstract",
-    "work authors",
-    "work cited papers",
-    "work cited-by papers",
-]
-
 
 class Task(Enum):
     """
@@ -125,16 +52,13 @@ class Task(Enum):
     MULTIQA = 0
     FOLLOWUPQUESTION = 1
     SIMPLIFICATION = 2
-    SUMMARIZATION = 3
-    FACT_REQUEST = 4
-    SINGLEQA_YESNO = 5
-    SINGLEQA_YESNOMAYBE = 6
-    UNSPECIFIED = 7
-    #SIMPLIFICATION = "simplification"
-    #SUMMARIZATION = "summarization"
-    #FACT_REQUEST = "fact-request"
-    #QUESTION_ANSWERING = "question-answering"
-    #UNSPECIFIED = "unspecified"
+    SIMPLIFICATION_FETCH = 3
+    SUMMARIZATION = 4
+    SUMMARIZATION_FETCH = 5
+    FACT_REQUEST = 6
+    SINGLEQA_YESNO = 7
+    SINGLEQA_YESNOMAYBE = 8
+    UNSPECIFIED = 9
 
 
 class KGTemplate(Enum):
@@ -322,30 +246,6 @@ def classify_prompt(prompt: str, num_council: int=1):
         {
             "role": "system",
             "content": SYSTEM_PROMPT_CLASSIFIER_EVAL
-        },
-        {"role": "user", "content": prompt_task}
-    ]
-
-    messages_kg_eval = [
-        {
-            "role": "system",
-            "content": KG_ACCESS_CLASSIFIER
-        },
-        {"role": "user", "content": prompt_task}
-    ]
-
-    messages_kg_eval_author = [
-        {
-            "role": "system",
-            "content": KG_ACCESS_CLASSIFIER_AUTHOR
-        },
-        {"role": "user", "content": prompt_task}
-    ]
-
-    messages_kg_eval_work = [
-        {
-            "role": "system",
-            "content": KG_ACCESS_CLASSIFIER_WORK
         },
         {"role": "user", "content": prompt_task}
     ]
