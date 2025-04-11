@@ -126,8 +126,10 @@ class Task(Enum):
     FOLLOWUPQUESTION = 1
     SIMPLIFICATION = 2 
     SUMMARIZATION = 3
-    FACT_REQUEST = 4 
-    UNSPECIFIED = 6
+    FACT_REQUEST = 4
+    SINGLEQA_YESNO = 5
+    SINGLEQA_YESNOMAYBE = 6
+    UNSPECIFIED = 7
     #SIMPLIFICATION = "simplification"
     #SUMMARIZATION = "summarization"
     #FACT_REQUEST = "fact-request"
