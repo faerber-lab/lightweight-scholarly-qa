@@ -8,6 +8,7 @@ from classify_prompt import Task
 from datasets import load_dataset
 from pls_eval import compute_score_for_example
 from RAG_openscholar_format import generate_response
+from readability import Readability
 
 print("Load scitldr dataset")
 # Load the SciTLDR dataset from Hugging Face (AIC split, can also use Abstract, FullText not used in eval)
@@ -30,11 +31,8 @@ if not os.path.exists(OUTPUT_DIR):
 
 print(f"\n{INPUT_FILE=}\n{OUTPUT_FILE}\n")
 results = []
-#dataset = dataset.select(range(10)) # use only part for debug
+#dataset = dataset.select(range(30)) # use only part for debug
 for ex in tqdm(dataset, desc="Computing SCORES"):
-    print("")
-    # NOTE: IMPORTANT: source should be the generated sum sentence for eval
-    #source = ex["source"]
     chat = generate_response(" ".join(ex['source']), task=Task.SUMMARIZATION_SCITLDR, initial=True)
     assert chat is not None
     source = chat['generated_text'][1]['content']
@@ -60,7 +58,6 @@ for ex in tqdm(dataset, desc="Computing SCORES"):
 
     with open(OUTPUT_FILE, "w") as f:
         json.dump(results, f)
-    print("")
 
 # average over all papers
 avg_max_scores = {}
@@ -72,14 +69,19 @@ for key in results[0]['max_scores'].keys():
         avg_max_scores[key][metric] = sum(r['max_scores'][key][metric] for r in results) / len(results)
         avg_avg_scores[key][metric] = sum(r['avg_scores'][key][metric] for r in results) / len(results)
 
+all_output = " ".join([r['output'] for r in results]) 
+
+r = Readability(all_output)
 results.append({
     "id": "all_examples",
-    "avg_scores": avg_avg_scores,
-    "max_scores": avg_max_scores,
-    "input": None,
-    "output": None,
-    "targets": None,
-    "chat": None,
+    "avg_avg_scores": avg_avg_scores,
+    "avg_max_scores": avg_max_scores,
+    "flesch_kincaid": r.flesch_kincaid().score,
+    "flesch": r.flesch().score,
+    "smog": r.smog(all_sentences=True).score,
+    "flesch_kincaid_g": r.flesch_kincaid().grade_level,
+    "flesch_g": r.flesch().grade_levels,
+    "smog_g": r.smog(all_sentences=True).grade_level,
 })
 
 with open(OUTPUT_FILE, "w") as f:

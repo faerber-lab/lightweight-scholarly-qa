@@ -35,7 +35,7 @@ def compute_score_for_example(source, targets, use_roberta_large=False):
         # eval bertscore
         if use_roberta_large:
             # use model 'roberta-large_L17_no-idf_version=0.3.12(hug_trans=4.51.2)'
-            bert_score = bertscore.compute(predictions=[source], references=[target], lang="en")
+            bert_score = bertscore.compute(predictions=[source], references=[gold_sentence], lang="en")
         else:
             # use model 'distilbert-base-uncased_L5_no-idf_version=0.3.12(hug_trans=4.51.2)'
             bert_score = bertscore.compute(predictions=[source], references=[gold_sentence], model_type="distilbert-base-uncased")
