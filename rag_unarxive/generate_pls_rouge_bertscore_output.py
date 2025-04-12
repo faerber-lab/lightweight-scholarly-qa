@@ -50,6 +50,7 @@ for ex in tqdm(dataset, desc="Computing SCORES"):
         "id": eid,
         "avg_scores": avg_scores,
         "max_scores": max_scores,
+        "compression_rate": len(ex["source"])/len(source),
         "input": ex["source"],
         "output": source,
         "targets": targets,
@@ -71,16 +72,19 @@ for key in results[0]['max_scores'].keys():
 
 all_output = " ".join([r['output'] for r in results]) 
 
+
 r = Readability(all_output)
 results.append({
     "id": "all_examples",
     "avg_avg_scores": avg_avg_scores,
     "avg_max_scores": avg_max_scores,
+    "avg_compression_rate": sum(r['compression_rate'] for r in results) / len(results),
     "flesch_kincaid": r.flesch_kincaid().score,
     "flesch": r.flesch().score,
     "smog": r.smog(all_sentences=True).score,
     "flesch_kincaid_g": r.flesch_kincaid().grade_level,
     "flesch_g": r.flesch().grade_levels,
+    "smog_g": r.smog(all_sentences=True).grade_level,
     "smog_g": r.smog(all_sentences=True).grade_level,
 })
 
