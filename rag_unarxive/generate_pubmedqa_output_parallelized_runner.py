@@ -19,10 +19,13 @@ BASE_MODEL = os.environ["BASE_MODEL"]
 LORA_MODEL = os.environ.get("LORA_MODEL", None)
 USE_RAG = True if os.environ.get("USE_RAG", "False") == "True" else False
 
+USE_ORIG_DS = True if os.environ.get("USE_ORIG_DS", "False") == "True" else False
+TEST_SET_ONLY = True if os.environ.get("TEST_SET_ONLY", "False") == "True" else False
+
 OUTPUT_BASE_DIR = os.environ["OUTPUT_BASE_DIR"]
 LOG_BASE_FILE = os.environ["LOG_BASE_FILE"]
 
-print("\n\n" + 20*"=" + "\n" + f"{RUN_NAME=} {BASE_MODEL=}, {LORA_MODEL=}, {USE_RAG=}, {RAG_PORT=}, {LLAMA_PORT=}" + "\n")
+print("\n\n" + 20*"=" + "\n" + f"{RUN_NAME=} {BASE_MODEL=}, {LORA_MODEL=}, {USE_RAG=}, {USE_ORIG_DS=}, {RAG_PORT=}, {LLAMA_PORT=}" + "\n")
 
 
 llama_process = None
@@ -69,7 +72,7 @@ if not USE_RAG:
     name += "_NO_RAG"
 generate_output_dir = os.path.join(OUTPUT_BASE_DIR, name)
 print(f"{name=}, {generate_output_dir=}")
-generate_process = subprocess.Popen(["bash", "-c", f"source ~/.bashrc; set_capella_env && python generate_pubmedqa_output.py --topk 10 --output_dir {generate_output_dir}{' --use_rag' if USE_RAG else ''}"])
+generate_process = subprocess.Popen(["bash", "-c", f"source ~/.bashrc; set_capella_env && python generate_pubmedqa_output.py --topk 10 --output_dir {generate_output_dir}{' --use_rag' if USE_RAG else ''} {' --use_orig_ds --no-filter' if USE_ORIG_DS else ''} {' --test_set_only' if TEST_SET_ONLY else ''}"])
 generate_process.wait()
 
 stop_process(llama_process)

@@ -14,6 +14,8 @@ parser.add_argument("--use_rag", action="store_true", default=False)
 parser.add_argument("--no_context", action="store_true", default=False)
 parser.add_argument("--use_orig_ds", action="store_true", default=False)
 parser.add_argument("--output_dir", default="./output_pubmedqa/", type=str)
+parser.add_argument("--max_retries", default=10, type=int)
+parser.add_argument("--test_set_only", default=False, action="store_true")
 args = parser.parse_args()
 
 from datasets import load_dataset
@@ -46,16 +48,22 @@ if args.use_orig_ds:
     print(f"{PUBMEDQA_CONFIG=}")
     ds = load_dataset("qiaojin/PubMedQA", PUBMEDQA_CONFIG)["train"]
 
+    with open("/data/horse/ws/s9650707-llm_secrets/datasets/pubmedqa/data/test_ground_truth.json", 'r') as f:
+        test_set = json.load(f)
+
     if not args.no_filter:
         ds = ds.filter(lambda x: x['final_decision'] in ['yes', 'no'])
+    
+    if args.test_set_only:
+        ds = ds.filter(lambda x: str(x['pubid']) in test_set.keys())
+    
+    
 else:
     ds = []
     with open("/home/s9650707/s9650707-llm_secrets/datasets/scholarqabench/ScholarQABench/data/single_paper_tasks/pubmed_test.jsonl", 'r') as f:
         for line in f:
             ds.append(json.loads(line))
 
-    print(ds[0])
-    print(ds[-1])
 
 print(f"{len(ds)=}")
 
@@ -120,33 +128,43 @@ for i, data in tqdm(enumerate(ds), total=total_count):
         golden_context=None
     else:
         golden_context=contexts
-    result = chatbot(question, context=golden_context, fixed_task=task, continuous_chat=False, print_outputs=False, no_rag=not args.use_rag, no_clean_refs=True, rag_topk=args.topk, remove_gen_reflist=False, no_remove_after_excessive_linebreak=True, no_remove_cite_after_linebreak_or_dot=True)
-    assert result is not None
-    reply = result[0]
-    references = result[1]
-    orig_reply = result[2]
-    #pprint.pp(result)
-    if not args.use_rag:
-        references.clear()
     
-    answer = clean_answer(reply)
+    for i in range(args.max_retries):
+        result = chatbot(question, context=golden_context, fixed_task=task, continuous_chat=False, print_outputs=False, no_rag=not args.use_rag, no_clean_refs=True, rag_topk=args.topk, remove_gen_reflist=False, no_remove_after_excessive_linebreak=True, no_remove_cite_after_linebreak_or_dot=True)
+        assert result is not None
+        reply = result[0]
+        references = result[1]
+        orig_reply = result[2]
+        #pprint.pp(result)
+        if not args.use_rag:
+            references.clear()
+        
+        answer = clean_answer(reply)
+        if answer in ['yes', 'no', 'maybe']:
+            break
+        else:
+            print(f"Got invalid answer '{answer}'. Trying again!")
     correct = (answer == final_decision)
     total_correct += 1*correct
     total_computed += 1
     print(f"Answer is {'CORRECT' if correct else 'WRONG'}! ({answer=}, golden={final_decision})")
-    if answer not in ['yes', 'no', 'maybe']:
-        exit(0)
 
-    result = {
-        "input": question,
-        "ctxs": [
+    if args.use_rag:
+        ctxs = [
             {
                 "title": ref.title,
                 "text": ref.cleaned_content(),
-
             }
             for ref in references
-        ],
+        ]
+    elif args.use_orig_ds:
+        ctxs = golden_context
+    else:
+        ctxs = []
+
+    result = {
+        "input": question,
+        "ctxs": ctxs,
         "output": reply,
         "orig_output": orig_reply,
         "golden_answer": final_decision,
