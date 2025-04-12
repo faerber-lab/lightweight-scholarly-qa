@@ -116,7 +116,7 @@ def classify_kg_request(prompt):
                 },
                 {"role": "user", "content": prompt}
             ]
-            
+
             messages_kg_eval_author = [
                 {
                     "role": "system",
@@ -124,7 +124,7 @@ def classify_kg_request(prompt):
                 },
                 {"role": "user", "content": prompt}
             ]
-            
+
             messages_kg_eval_work = [
                 {
                     "role": "system",
@@ -206,7 +206,7 @@ def get_kg_response(kg_task, entity):
         return "Apologies, but I could not find out what Knowledge-Graph-Access you wanted."
 
 
-def generate_response_kg_request(prompt : str, kg_task = None):
+def generate_response_kg_request(prompt : str, kg_task=None):
     if kg_task is None:
         kg_task = classify_kg_request(prompt)
 

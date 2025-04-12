@@ -24,7 +24,7 @@ def compute_score_for_example(source, targets, use_roberta_large=False):
     if source is not str:
         source = " ".join(source)
 
-    # eval BertScore: compare against all gold sentences and get maximum
+    # eval: compare against all gold sentences and get average/maximum
     scores = []
     for gold_sentence in targets:
         # eval rouge and turn into dict
@@ -65,6 +65,24 @@ def compute_score_for_example(source, targets, use_roberta_large=False):
 
 
 if __name__ == "__main__":
+    source = "The proposed FearNet framework achieves state-of-the-art performance at incremental class learning on image (CIFAR-100, CUB-200) and audio classification (AudioSet) benchmarks, demonstrating its ability to recall and consolidate recently learned information while retaining old information in a memory-efficient manner."
+    source = "FearNet is a memory efficient neural-network, inspired by memory formation in the mammalian brain, that is capable of incremental class learning without catastrophic forgetting.",
+    targets = [
+      "This paper presents a novel solution to an incremental classification problem based on a dual memory system. "
+    ]
+    avg_scores, max_scores = compute_score_for_example(source, targets)
+    print("-" * 40)
+    print("Average")
+    for metric, scores in avg_scores.items():
+        print(f"  {metric.upper()}: P={scores['precision']:.4f}, R={scores['recall']:.4f}, F1={scores['fmeasure']:.4f}")
+    print("-" * 40)
+
+    print("-" * 40)
+    print("Maximum")
+    for metric, scores in max_scores.items():
+        print(f"  {metric.upper()}: P={scores['precision']:.4f}, R={scores['recall']:.4f}, F1={scores['fmeasure']:.4f}")
+    print("-" * 40)
+
     print("Load scitldr dataset")
     # Load the SciTLDR dataset from Hugging Face (AIC split, can also use Abstract, FullText not used in eval)
     dataset = load_dataset("allenai/scitldr", "AIC", split="test")  # use "validation" or "test" if needed
@@ -72,7 +90,7 @@ if __name__ == "__main__":
     #features: ['source', 'source_labels', 'rouge_scores', 'paper_id', 'target'],
 
     # eval AIC example papers
-    dataset = dataset.select(range(10)) # use only part 
+    dataset = dataset.select(range(10)) # use only part
     results = []
     print("Evaluate ROUGE and BertScore for each example and get max/average from all gold summarization sentences (author, peer-reviewer)")
     for ex in tqdm(dataset, desc="Computing SCORES"):
@@ -81,14 +99,14 @@ if __name__ == "__main__":
         source = ex["source"]
         targets = ex["target"]
         eid = ex.get("paper_id", "N/A")
-    
+
         avg_scores, max_scores = compute_score_for_example(source, targets)
         results.append({
             "eid": eid,
             "avg_scores": avg_scores,
             "max_scores": max_scores,
         })
-    
+
     # Print a few example results
     print("-" * 40)
     print("Average")
@@ -98,7 +116,7 @@ if __name__ == "__main__":
         for metric, scores in r['avg_scores'].items():
             print(f"  {metric.upper()}: P={scores['precision']:.4f}, R={scores['recall']:.4f}, F1={scores['fmeasure']:.4f}")
         print("-" * 40)
-    
+
     print("-" * 40)
     print("Maximum")
     print("-" * 40)
@@ -107,4 +125,4 @@ if __name__ == "__main__":
         for metric, scores in r['max_scores'].items():
             print(f"  {metric.upper()}: P={scores['precision']:.4f}, R={scores['recall']:.4f}, F1={scores['fmeasure']:.4f}")
         print("-" * 40)
-    
+

@@ -194,7 +194,7 @@ def train_paper_ner(nlp: Language):
     ######
 
     # Save ner model
-    #nlp.to_disk("/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy")
+    nlp.to_disk("/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy")
 
 if __name__ == '__main__':
     nlp = spacy.load('en_core_web_sm')
