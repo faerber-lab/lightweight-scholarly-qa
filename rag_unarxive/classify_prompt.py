@@ -1,5 +1,5 @@
 from llama_request import llama_request
-from enum import Enum, StrEnum
+from enum import Enum
 import numpy as np
 import random
 from tqdm import tqdm
@@ -52,35 +52,12 @@ class Task(Enum):
     MULTIQA = 0
     FOLLOWUPQUESTION = 1
     SIMPLIFICATION = 2
-    SIMPLIFICATION_FETCH = 3
-    SUMMARIZATION = 4
-    SUMMARIZATION_FETCH = 5
-    FACT_REQUEST = 6
-    SINGLEQA_YESNO = 7
-    SINGLEQA_YESNOMAYBE = 8
-    UNSPECIFIED = 9
-
-
-class KGTemplate(Enum):
-    """
-    Knowledge-Graph Template class
-    """
-    AUTHOR_NUMBER_OF_WORKS = 0
-    AUTHOR_HINDEX = 1
-    AUTHOR_CITED_BY_COUNT = 2
-    AUTHOR_I10INDEX = 3
-    AUTHOR_ORCID = 4
-    AUTHOR_INSTITUTE = 5
-    AUTHOR_WORKS = 6
-    WORK_DOI = 7
-    WORK_TYPE = 8
-    WORK_PUBLICATION_DATE = 9
-    WORK_CITES = 10
-    WORK_TOPIC = 11
-    WORK_ABSTRACT = 12
-    WORK_AUTHORS = 13
-    WORK_CITED_PAPERS = 14
-    WORK_CITEDBY_PAPERS = 15
+    SUMMARIZATION = 3
+    SUMMARIZATION_SCITLDR = 4
+    FACT_REQUEST = 5
+    SINGLEQA_YESNO = 6
+    SINGLEQA_YESNOMAYBE = 7
+    UNSPECIFIED = 8
 
 
 def get_summarization_questions(list_of_works, num_of_questions=10):

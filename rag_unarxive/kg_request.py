@@ -1,10 +1,33 @@
 #! /usr/bin/env python3
 
 import soa_sparql_access as soa
-from train_paper_ner_model import get_text_from_paper_title, search_for_paper_title, search_for_author_name
+from enum import Enum
+from train_paper_ner_model import get_text_from_paper_title, search_for_paper_title, get_ner_author_name
 """
 
 """
+
+class KGTemplate(Enum):
+    """
+    Knowledge-Graph Template class
+    """
+    AUTHOR_NUMBER_OF_WORKS = 0
+    AUTHOR_HINDEX = 1
+    AUTHOR_CITED_BY_COUNT = 2
+    AUTHOR_I10INDEX = 3
+    AUTHOR_ORCID = 4
+    AUTHOR_INSTITUTE = 5
+    AUTHOR_WORKS = 6
+    WORK_DOI = 7
+    WORK_TYPE = 8
+    WORK_PUBLICATION_DATE = 9
+    WORK_CITES = 10
+    WORK_TOPIC = 11
+    WORK_ABSTRACT = 12
+    WORK_AUTHORS = 13
+    WORK_CITED_PAPERS = 14
+    WORK_CITEDBY_PAPERS = 15
+
 
 KG_ACCESS_CLASSIFIER = """
 You will be presented with a metadata request. Classify the intent behind this task by choosing from one of the following categories:
@@ -55,32 +78,7 @@ Your answer should be a single word from the following list of options: ["type",
 """
 
 
-messages_kg_eval = [
-    {
-        "role": "system",
-        "content": KG_ACCESS_CLASSIFIER
-    },
-    {"role": "user", "content": prompt_task}
-]
-
-messages_kg_eval_author = [
-    {
-        "role": "system",
-        "content": KG_ACCESS_CLASSIFIER_AUTHOR
-    },
-    {"role": "user", "content": prompt_task}
-]
-
-messages_kg_eval_work = [
-    {
-        "role": "system",
-        "content": KG_ACCESS_CLASSIFIER_WORK
-    },
-    {"role": "user", "content": prompt_task}
-]
-
-
-def identify_kg_request(prompt):
+def classify_kg_request(prompt):
     # check KG request by identifying specific word
     use_spacy = False
     if   any(findWholeWord(x)(answer.lower()) for x in  ['h-index', 'hindex', 'h index', 'h_index']):
@@ -98,19 +96,43 @@ def identify_kg_request(prompt):
         has_work = False
 
         title = search_for_paper_title(prompt)
-        author = search_for_author_name(prompt)
+        author = get_ner_author_name(prompt)
 
-        if title in not None:
-            has_work = True 
+        if title is not None:
+            has_work = True
 
-        if author in not None:
-            has_author = True 
+        if author is not None:
+            has_author = True
 
         # TODO
         # check KG request with either llama or spacyTextCategorizer
         if use_spacy:
             pass
         else:
+            messages_kg_eval = [
+                {
+                    "role": "system",
+                    "content": KG_ACCESS_CLASSIFIER
+                },
+                {"role": "user", "content": prompt}
+            ]
+            
+            messages_kg_eval_author = [
+                {
+                    "role": "system",
+                    "content": KG_ACCESS_CLASSIFIER_AUTHOR
+                },
+                {"role": "user", "content": prompt}
+            ]
+            
+            messages_kg_eval_work = [
+                {
+                    "role": "system",
+                    "content": KG_ACCESS_CLASSIFIER_WORK
+                },
+                {"role": "user", "content": prompt}
+            ]
+
             if has_author and has_work:
                 chat = llama_request(messages_kg_eval, port=8000)
                 answer = chat['generated_text'][2]['content']
@@ -121,7 +143,7 @@ def identify_kg_request(prompt):
                 answer = chat['generated_text'][2]['content']
 
             elif has_work:
-                entity = work 
+                entity = work
                 chat = llama_request(messages_kg_eval_work, port=8000)
                 answer = chat['generated_text'][2]['content']
 
@@ -132,63 +154,67 @@ def identify_kg_request(prompt):
     return kg_task, entity
 
 def get_kg_response(kg_task, entity):
-    if   kg_task = KGTemplate.AUTHOR_NUMBER_OF_WORKS:
+    if   kg_task == KGTemplate.AUTHOR_NUMBER_OF_WORKS:
         num_works = soa.auth_num_works(soa.auth_soa_id(entity))
         return str(num_works)
-    elif kg_task = KGTemplate.AUTHOR_HINDEX:
+    elif kg_task == KGTemplate.AUTHOR_HINDEX:
         h_index = soa.auth_h_index(soa.auth_soa_id(entity))
         return str(h_index)
-    elif kg_task = KGTemplate.AUTHOR_CITED_BY_COUNT:
+    elif kg_task == KGTemplate.AUTHOR_CITED_BY_COUNT:
         cited_by_count = soa.auth_cited_by_count(soa.auth_soa_id(entity))
         return str(cited_by_count)
-    elif kg_task = KGTemplate.AUTHOR_I10INDEX:
+    elif kg_task == KGTemplate.AUTHOR_I10INDEX:
         i10_index = soa.auth_i10_index(soa.auth_soa_id(entity))
         return str(i10_index)
-    elif kg_task = KGTemplate.AUTHOR_ORCID:
+    elif kg_task == KGTemplate.AUTHOR_ORCID:
         orcid_id = soa.auth_orcid_id(soa.auth_soa_id(entity))
         return str(orcid_id)
-    elif kg_task = KGTemplate.AUTHOR_INSTITUTE:
+    elif kg_task == KGTemplate.AUTHOR_INSTITUTE:
         institute = soa.auth_institute_name(soa.auth_soa_id(entity))
         return str(institute)
-    elif kg_task = KGTemplate.AUTHOR_WORKS:
+    elif kg_task == KGTemplate.AUTHOR_WORKS:
         work_titles = soa.translate_ids(soa.auth_created_works(soa.auth_soa_id(entity)), work_title)
         return(" ".join(work_titles))
-    elif kg_task = KGTemplate.WORK_DOI:
+    elif kg_task == KGTemplate.WORK_DOI:
         doi = soa.work_doi(soa.work_soa_id(entity))
         return str(doi)
-    elif kg_task = KGTemplate.WORK_TYPE:
+    elif kg_task == KGTemplate.WORK_TYPE:
         wtype = soa.work_type(soa.work_soa_id(entity))
         return str(wtype)
-    elif kg_task = KGTemplate.WORK_PUBLICATION_DATE:
+    elif kg_task == KGTemplate.WORK_PUBLICATION_DATE:
         publication_date = soa.work_publication_date(soa.work_soa_id(entity))
         return str(publication_date)
-    elif kg_task = KGTemplate.WORK_CITES:
+    elif kg_task == KGTemplate.WORK_CITES:
         cites = soa.work_cites(soa.work_soa_id(entity))
         return str(cites)
-    elif kg_task = KGTemplate.WORK_TOPIC:
+    elif kg_task == KGTemplate.WORK_TOPIC:
         primary_topic = topic_name(soa.work_primary_topic(soa.work_soa_id(entity)))
         return str(primary_topic)
-    elif kg_task = KGTemplate.WORK_ABSTRACT:
+    elif kg_task == KGTemplate.WORK_ABSTRACT:
         abstract = soa.work_abstract(soa.work_soa_id(entity))
         return str(abstract)
-    elif kg_task = KGTemplate.WORK_AUTHORS:
+    elif kg_task == KGTemplate.WORK_AUTHORS:
         authors = soa.translate_ids(soa.work_creators(soa.work_soa_id(entity)), soa.auth_name) # currently no order, use hasAuthorship instead
         return(" ".join(authors))
-    elif kg_task = KGTemplate.WORK_CITED_PAPERS:
+    elif kg_task == KGTemplate.WORK_CITED_PAPERS:
         cited_papers = soa.translate_ids(soa.work_cited_soa.works(soa.work_soa_id(entity)), soa.work_title)
         return(" ".join(cited_papers))
-    elif kg_task = KGTemplate.WORK_CITEDBY_PAPERS:
+    elif kg_task == KGTemplate.WORK_CITEDBY_PAPERS:
         cited_by_papers = soa.translate_ids(soa.work_cited_by_soa.works(soa.work_soa_id(entity)), soa.work_title)
         return(" ".join(cited_by_papers))
-    else
+    else:
         return "Apologies, but I could not find out what Knowledge-Graph-Access you wanted."
 
 
-def generate_response_kg_request(prompt : str):
-    return get_kg_response(identify_kg_request(prompt))
+def generate_response_kg_request(prompt : str, kg_task = None):
+    if kg_task is None:
+        kg_task = classify_kg_request(prompt)
+
+    author = get_ner_author_name(prompt)
+    return get_kg_response(kg_task, author)
 
 
 if __name__ == "__main__":
-    generate_response_kg_request("Give me the h index of Matthias Jobst")
+    print(generate_response_kg_request("Give me the institute of person Matthias Jobst", kg_task=KGTemplate.AUTHOR_INSTITUTE))
 
 

@@ -38,18 +38,19 @@ else:
 
 
 def get_ner_author_name(prompt, fthresh=70):
-    doc = nlp(q)
+    doc = nlp(prompt)
     author_names = []
     if doc.ents:
         for ent in doc.ents:
-            if ent.label_ == "PERSON":
+            print(ent.text, ent.label_)
+            if ent.label_ == "PERSON": # TRAIN SO PERSON IS DETECTED
                 author_names.append(ent.text)
     else:
         print("ERROR: found no entities")
         return None
 
     if len(author_names) == 0:
-        print("ERROR: found no PAPER entities")
+        print("ERROR: found no PERSON entities")
         return None
     elif len(author_names) == 1:
         return author_names[0]

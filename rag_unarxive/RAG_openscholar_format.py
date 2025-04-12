@@ -7,6 +7,8 @@ import pprint
 import os
 import sys
 import os.path
+import nltk
+from nltk.tokenize import sent_tokenize
 from enum import Enum
 from train_paper_ner_model import get_text_from_paper_title, search_for_paper_title
 from references import References, clean_references, remove_after_excessive_linebreak, remove_cites_after_linebreak_or_dot, remove_generated_references
@@ -21,6 +23,7 @@ print("Loading others...")
 from typing import Any, List, Tuple
 print("Loading done...")
 
+enable_fetch_version = True 
 
 def multi_qa_context(references: References, no_rag: bool=False) -> str:
     """Format retrieved documents into a context string for the MultiQA task."""
@@ -191,19 +194,42 @@ def generate_response(prompt: str, task: Task, context: Any=None, initial: bool=
             ]
             #else:
             #    return {'generated_text': [{'role': 'assistant', 'content': "Unfortunately, no references related to your question were found!"}]}
-        elif task == Task.SUMMARIZATION:
+        elif task == Task.SUMMARIZATION_SCITLDR:
+            context = "You will be shown the text of the abstract, introduction, " \
+                      "and conclusion of a scientific paper. Please summarize the " \
+                      "key findings of the work in 1-2 sentences.\n\n"
+            full_prompt = context + prompt
+            messages = [
+                {"role": "user", "content": full_prompt}
+            ]
+
+        elif task == Task.SIMPLIFICATION or task == Task.SUMMARIZATION:
+            content = ""
+            if enable_fetch_version:
+                # get paper title w/ NER and do a fuzzy search in RAG database + add text to prompt + send to LLM 
+                nltk.download('punkt')
+                number_of_sentences = sent_tokenize(prompt)
+                if number_of_sentences<3:
+                    title = search_for_paper_title(prompt)
+                    if title is not None:
+                        content = get_text_from_paper_title(search_for_paper_title(prompt, fthresh=70))
+                        context = "You will be shown the full text of 1 or 2 scientific papers. "
+                        if task == Task.SIMPLIFICATION: 
+                            context = context + "Please simplify the work in a simpler " \
+                                                "language for easier understanding.\n\n"
+                        elif task == Task.SUMMARIZATION:
+                            context = context + "Please summarize the key findings of " \
+                                                "the work in a few sentences.\n\n"
+
+            full_prompt = content + prompt
+            messages = [
+                {"role": "user", "content": full_prompt}
+            ]
+        
+        elif task == Task.FACT_REQUEST:
+            # TODO
+            #chat = generate_response_kg_request(prompt)
             pass
-        elif task == Task.SUMMARIZATION_FETCH:
-            # check if references were found
-            if no_rag or (references and len(references) > 0):
-                context = multi_qa_context(references, no_rag)
-                # Combine context and prompt
-                full_prompt = context + prompt
-                messages = [
-                    {"role": "user", "content": full_prompt}
-                ]
-            else:
-                return {'generated_text': [{'role': 'assistant', 'content': "Unfortunately, no references related to your question were found!"}]}
         else:
             system_prompt = "You are a helpful assistant. Answer the user's queries with highest attention to correctness. Be concise and give short answers, only adding strictly necessary detail. Do not write more than is asked."
             messages = [
@@ -260,30 +286,9 @@ def chatbot(prompt: str|None, context=None, continuous_chat: bool=True, print_ou
         # Generate and stream response
         references = None
         if initial:
-            if task == Task.SIMPLIFICATION:
-                # TODO
-                pass
+            references = References()
 
-            elif task == Task.SIMPLIFICATION_FETCH:
-                # get paper title and do a fuzzy search in RAG database + add text to prompt + send to llama
-                content = get_text_from_paper_title(search_for_paper_title(prompt, fthresh=70))
-                # TODO
-
-            elif task == Task.SUMMARIZATION:
-                # TODO
-                pass
-
-            elif task == Task.SUMMARIZATION_FETCH:
-                # get paper title and do a fuzzy search in RAG database + add text to prompt + send to llama
-                content = get_text_from_paper_title(search_for_paper_title(prompt, fthresh=70))
-                # TODO
-
-            elif task == Task.FACT_REQUEST:
-                # TODO
-                #chat = generate_response_kg_request(prompt)
-                pass
-
-            elif task == Task.MULTIQA:
+            if task == Task.MULTIQA:
                 if no_rag:
                     references = References()
                 else:
