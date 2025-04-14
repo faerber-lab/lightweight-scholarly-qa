@@ -2,6 +2,7 @@ from llama_request import llama_request
 from enum import Enum
 import numpy as np
 import random
+import os 
 from tqdm import tqdm
 
 # chemsum_single_document_summarization
@@ -167,9 +168,27 @@ def get_simplification_questions(list_of_works, num_of_questions=10):
 
 
 def get_kg_request_questions_works(list_of_works, num_of_questions=10):
-    # TODO
     questions = np.array([
-        "",
+        "Please give me the [[req]] of [[doc]].",
+        "What is the [[req]] of [[doc]]?"
+        "I need the [[req]] of [[doc]]."
+        "From [[doc]] please give me the [[req]]"
+    ])
+
+    questions_spec = np.array([
+        "Which papers did cite [[doc]]?"
+        "What are the cited papers of [[doc]]?"
+    ])
+
+    reqs = np.array([
+        "title",
+        "doi",
+        "type",
+        "publication date",
+        "number of cites"
+        "topic",
+        "abstract",
+        "authors", 
     ])
 
     #gen_questions = np.empty((num_of_questions), dtype=np.dtypes.StringDType)
@@ -179,17 +198,35 @@ def get_kg_request_questions_works(list_of_works, num_of_questions=10):
     for gen_idx in tqdm(range(num_of_questions)):
         q_idx = random.randint(0, len(questions)-1)
         w_idx = random.randint(0, len(list_of_works)-1)
-        doc_start = questions[q_idx].find('[[doc]]')
+        r_idx = random.randint(0, len(reqs)-1)
+        array_choice = random.randint(0, len(10)-1)
+        if array_choice<2: chosen_q = questions_spec[array_choice]
+        else:              chosen_q = questions[q_idx]
+
+        doc_start = chosen_q.find('[[doc]]')
         doc_positions[gen_idx] = [doc_start, doc_start+len(list_of_works[w_idx])]
         gen_questions[gen_idx] = questions[q_idx].replace('[[doc]]', list_of_works[w_idx])
+        gen_questions[gen_idx] = questions[q_idx].replace('[[req]]', reqs[r_idx])
 
     return gen_questions, doc_positions
 
 
 def get_kg_request_questions_author(list_of_authors, num_of_questions=10):
-    # TODO
     questions = np.array([
-        "",
+        "What is the [[req]] of [[auth]]?",
+        "Please give me [[req]] of [[auth]].",
+        "I need the [[req]] of [[auth]]."
+        "From [[auth]] please give me the [[req]]"
+    ])
+
+    reqs = np.array([
+        "number of works",
+        "h-index",
+        "citedBy count",
+        "i10-index",
+        "orcid-Id",
+        "institute",
+        "papers",
     ])
 
     #gen_questions = np.empty((num_of_questions), dtype=np.dtypes.StringDType)
@@ -198,10 +235,12 @@ def get_kg_request_questions_author(list_of_authors, num_of_questions=10):
     print("Generate {} summarization questions".format(num_of_questions))
     for gen_idx in tqdm(range(num_of_questions)):
         q_idx = random.randint(0, len(questions)-1)
-        w_idx = random.randint(0, len(list_of_works)-1)
+        w_idx = random.randint(0, len(list_of_authors)-1)
+        r_idx = random.randint(0, len(reqs)-1)
         doc_start = questions[q_idx].find('[[auth]]')
-        doc_positions[gen_idx] = [doc_start, doc_start+len(list_of_auth[w_idx])]
-        gen_questions[gen_idx] = questions[q_idx].replace('[[auth]]', list_of_auth[w_idx])
+        doc_positions[gen_idx] = [doc_start, doc_start+len(list_of_authors[w_idx])]
+        gen_questions[gen_idx] = questions[q_idx].replace('[[auth]]', list_of_authors[w_idx])
+        gen_questions[gen_idx] = questions[q_idx].replace('[[req]]', reqs[r_idx])
 
     return gen_questions, doc_positions
 
@@ -230,8 +269,13 @@ def classify_prompt(prompt: str, num_council: int=1):
     this_class = Task.UNSPECIFIED
     classes = []
     #for member in range(num_council):
-    chat = llama_request(messages, port=8000)
+    chat = llama_request(messages, port=str(os.environ.get("LLAMA_PORT", 8000)))
     answer = chat['generated_text'][2]['content']
+    print("-----------------------------------")
+    print("-----------------------------------")
+    print(answer)
+    print("-----------------------------------")
+    print("-----------------------------------")
     # try to condense to one word if generation ignored rule
     for reduce_text_try in range(10):
         #if " " in answer:
@@ -240,8 +284,13 @@ def classify_prompt(prompt: str, num_council: int=1):
         else:
             print("need to reduce answer -> try #{}".format(reduce_text_try))
             messages_reduce[1]['content'] = answer
-            chat = llama_request(messages_reduce, port=8000)
+            chat = llama_request(messages_reduce, port=str(os.environ.get("LLAMA_PORT", 8000)))
             answer = chat['generated_text'][2]['content']
+            print("-----------------------------------")
+            print("-----------------------------------")
+            print(answer)
+            print("-----------------------------------")
+            print("-----------------------------------")
 
     def findWholeWord(w):
         return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search

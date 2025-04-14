@@ -21,6 +21,7 @@ import pickle
 import numpy as np
 from tqdm import tqdm
 from spacy import util
+from thefuzz import fuzz
 from spacy.tokens import Doc
 from spacy.training import Example
 from spacy.language import Language
@@ -31,6 +32,7 @@ spacy.prefer_gpu()
 nlp = spacy.load("en_core_web_sm")
 ner_nlp = spacy.load("en_core_web_sm")
 ner_nlp_path = "/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy"
+assert os.path.isdir(ner_nlp_path)
 if os.path.isdir(ner_nlp_path):
     ner_nlp.from_disk(ner_nlp_path)
 else:
@@ -58,7 +60,7 @@ def get_ner_author_name(prompt, fthresh=70):
         print("WARNING: found multiple paper titles in text -> give out first one")
 
 
-def get_text_from_paper_title(title):
+def get_text_from_paper_title(title, path_to_unarxive='/data/horse/ws/s9650707-llm_secrets/datasets/unarxive/md3/'):
     with open('title_to_file.pkl', 'rb') as f:
         title_to_file = pickle.load(f)
 
@@ -66,16 +68,24 @@ def get_text_from_paper_title(title):
 
     content = ""
     for fname in fnames:
-        with open(fname, 'r') as file:
+        with open(path_to_unarxive + fname, 'r') as file:
             new_content = file.read()
-            content = content + new_content.split("## Content")[1] + "\n"
+            abstract_intro = new_content.split("## Abstract")[1]
+            abstract_intro = abstract_intro.split("### 2:")[0]
+            content = content + abstract_intro + "\n"
+    
+    content = content.replace("{{cite:}}", "")
+    content = content.replace("## Content\n### 1: ", "")
 
     if content == "":
         print("ERROR: content empty")
 
+    return content
 
-def search_for_paper_title(prompt, fthresh=70):
-    paper_title = get_ner_paper_title(prompt)
+
+def search_for_paper_title(prompt, paper_title=None, fthresh=70):
+    if paper_title is None: 
+        paper_title = get_ner_paper_title(prompt)
     if paper_title is None:
         return None
 
@@ -88,9 +98,10 @@ def search_for_paper_title(prompt, fthresh=70):
         for work in list_of_works:
             fratio = fuzz.ratio(paper_title, work)
 
-            if fration>=fthresh and fratio>curr_ratio:
+            if fratio>=fthresh and fratio>curr_ratio:
                 curr_ratio = fratio
                 curr_work = work
+                print("DEBUG: new fuzzy ratio {} - {}".format(fratio, work))
 
     if curr_work is None:
         print("ERROR: found no fitting paper title")
@@ -99,7 +110,9 @@ def search_for_paper_title(prompt, fthresh=70):
 
 
 def get_ner_paper_title(prompt):
-    doc = ner_nlp(q)
+    nlp = spacy.load('en_core_web_sm')
+    my_nlp = train_paper_ner(nlp)
+    doc = my_nlp(prompt)
     paper_titles = []
     if doc.ents:
         for ent in doc.ents:
@@ -171,9 +184,9 @@ def train_paper_ner(nlp: Language):
             spacy.training.offsets_to_biluo_tags(nlp.make_doc(raw_text), entity_offsets)
             nlp.update([example], sgd=optimizer)
 
-    # Enable all previously disabled pipe components
-    for pipe_name in disabled_pipes:
-        nlp.enable_pipe(pipe_name)
+    ## Enable all previously disabled pipe components
+    #for pipe_name in disabled_pipes:
+    #    nlp.enable_pipe(pipe_name)
 
     # Result after training
     sum_questions, sum_doc_positions = get_summarization_questions(list_of_works, num_of_questions=10)
@@ -195,6 +208,8 @@ def train_paper_ner(nlp: Language):
 
     # Save ner model
     nlp.to_disk("/data/horse/ws/s1304873-llm_secrets/scholaryllm_prot/rag_unarxive/ner_nlp.spacy")
+    return nlp
+
 
 if __name__ == '__main__':
     nlp = spacy.load('en_core_web_sm')

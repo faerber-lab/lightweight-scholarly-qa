@@ -7,7 +7,6 @@ import pprint
 import os
 import sys
 import os.path
-from thefuzz import fuzz
 from enum import Enum
 from train_paper_ner_model import get_text_from_paper_title, search_for_paper_title
 from references import References, clean_references, remove_after_excessive_linebreak, remove_cites_after_linebreak_or_dot, remove_generated_references
@@ -216,11 +215,11 @@ def generate_response(prompt: str, task: Task, context: Any=None, initial: bool=
                 import nltk
                 from nltk.tokenize import sent_tokenize
                 nltk.download('punkt')
-                number_of_sentences = sent_tokenize(prompt)
+                number_of_sentences = len(sent_tokenize(prompt))
                 if number_of_sentences<3:
                     title = search_for_paper_title(prompt)
                     if title is not None:
-                        content = get_text_from_paper_title(search_for_paper_title(prompt, fthresh=70))
+                        content = get_text_from_paper_title(title)
                         context = "You will be shown the full text of 1 or 2 scientific papers. "
                         if task == Task.SIMPLIFICATION:
                             context = context + "Please simplify the work in a simpler " \
@@ -228,8 +227,12 @@ def generate_response(prompt: str, task: Task, context: Any=None, initial: bool=
                         elif task == Task.SUMMARIZATION:
                             context = context + "Please summarize the key findings of " \
                                                 "the work in a few sentences.\n\n"
+                            full_prompt = context + content
+                    else:
+                        print("WARNING: could not find title in prompt")
 
-            full_prompt = context + content
+            assert context is not None
+            assert content is not None
             messages = [
                 {
                     "role": "system",
@@ -315,6 +318,8 @@ def chatbot(prompt: str|None, context=None, continuous_chat: bool=True, print_ou
                     references = References.retrieve_from_vector_store(prompt, topk=rag_topk, port=int(os.environ.get("RAG_PORT", 8003)))
                     references.drop_refs_with_low_score(threshold=0.1)
                 chat = generate_response(prompt, task=task, context=context, initial=initial, references=references, no_rag=no_rag)
+            else:
+                chat = generate_response(prompt, task=task, initial=initial, references=references, no_rag=no_rag)
         else:
             chat = generate_response(prompt, task=Task.FOLLOWUPQUESTION, initial=initial, references=references, previous_chat=chat['generated_text'], no_rag=no_rag)
 
@@ -362,10 +367,14 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt", type=str, default=None)
     parser.add_argument("--topk", type=int, default=10)
+    parser.add_argument("--fixed_task", type=int, default=None)
     parser.add_argument("--no_clean_refs", action="store_true", default=False)
     args = parser.parse_args()
     print(args)
-    chatbot(prompt=args.prompt, rag_topk=args.topk, no_clean_refs=args.no_clean_refs)
+    fixed_task = args.fixed_task
+    if fixed_task is not None:
+        fixed_task = Task(fixed_task)
+    chatbot(prompt=args.prompt, rag_topk=args.topk, no_clean_refs=args.no_clean_refs, fixed_task=fixed_task)
 
 
 
