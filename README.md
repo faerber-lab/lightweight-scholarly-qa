@@ -6,4 +6,4 @@
 
 ## RAG Model Pipeline and Evaluation
 - RAG model pipeline and evaluations are in rag_unarxive
-- ScholarQABench evaluation is in https://gitlab.com/matthias.jobst/scholarqabench
+- ScholarQABench evaluation is in [[https://gitlab.com/matthias.jobst/scholarqabench](https://github.com/faerber-lab/scholarqabench)](https://github.com/faerber-lab/scholarqabench)
