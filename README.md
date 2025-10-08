@@ -1,5 +1,4 @@
-# scholaryLLM_prot
-
+# A Lightweight LLM-RAG Pipeline for Scientific Literature Comprehension
 
 ## Finetuning
 - finetuning code is in os_train_data_finetune
