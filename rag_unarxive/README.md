@@ -16,6 +16,6 @@ You need to start both the Llama server and the RAG server, for this use two ter
 
 ### Usage
 Open a third terminal, load your virtual environment. Wait until both other terminals show `INFO:     Application startup complete.`
-- Run `python RAG.py`
+- Run `python RAG_openscholar_format.py`
 - Enter your question
 - enjoy
