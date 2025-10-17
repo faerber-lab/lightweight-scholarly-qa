@@ -85,16 +85,25 @@ And get responses grounded in your scientific corpus.
 ## 📁 Directory Structure (Optional)
 
 ```text
-├── os_train_data_finetune/     # Finetuning scripts and data handling
-├── rag_unarxive/start_llama_server.sh       # Script to launch the LLM server
-├── rag_unarxive/start_rag_server.sh         # Script to launch the RAG server
-├── rag_unarxive/RAG_openscholar_format.py   # Entry point for querying the pipeline
-├── README.md                   # This file
+├── os_train_data_finetune/                 # Finetuning scripts and data handling
+├── rag_unarxive/                           # RAG pipeline and server scripts
+│   ├── start_llama_server.sh               # Script to launch the LLM server
+│   ├── start_rag_server.sh                 # Script to launch the RAG server
+│   ├── RAG_openscholar_format.py           # Entry point for querying the pipeline
+│   ├── ....                               
+├── README.md                               # This file
+
 ```
 
 ---
 
 ## 🧪 Notes
 
-- Make sure your model and data paths are correctly configured in the scripts.
-- The system assumes local or pre-finetuned models; cloud integration is not included.
+- Make sure your model and data paths are correctly configured in the scripts, for example in [`llama_pipeline.py`](./rag_unarxive/llama_pipeline.py):
+
+```python
+# Change this path to your local model location
+model_path = "/data/horse/ws/s9650707-llm_workspace/scholaryllm_prot/os_train_data_finetune/model_checkpoints/..."
+```
+
+- The pipeline assumes local or pre-finetuned models and indexing.
